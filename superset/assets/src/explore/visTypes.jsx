@@ -88,6 +88,31 @@ const timeGrainSqlaAnimationOverrides = {
 };
 
 export const visTypes = {
+// 新类型---start
+  echarts_funnel: {
+    label: t('Funnel View'),
+    showOnExplore: true,
+    controlPanelSections: [
+      {
+        label: t('Query'),
+        expanded: true,
+        controlSetRows: [
+          ['metrics'],
+          ['groupby'],
+          ['limit'],
+        ],
+      },
+      {
+        label: t('Chart Options'),
+        expanded: true,
+        controlSetRows: [
+          ['color_scheme'],
+        ],
+      },
+    ],
+  },
+// 新类型--end
+
   dist_bar: {
     label: t('Distribution - Bar Chart'),
     showOnExplore: true,

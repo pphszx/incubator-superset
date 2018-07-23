@@ -467,6 +467,33 @@ class BaseViz(object):
     def json_data(self):
         return json.dumps(self.data)
 
+class EchartsViz(BaseViz):
+
+    """Base class for all nvd3 vizs"""
+
+    credits = '<a href="http://echarts.baidu.com/">ECharts</a>'
+    viz_type = None
+    verbose_name = 'Base ECharts Viz'
+    is_timeseries = False
+
+class EchartsFunnelViz(EchartsViz):
+
+    """ Funnel Chart"""
+
+    viz_type = 'echarts_funnel'
+    verbose_name = _('ECharts漏斗图')
+    is_timeseries = False
+
+    def get_data(self, df):
+        metric = self.metric_labels[0]
+        df = df.pivot_table(
+            index=self.groupby,
+            values=[metric])
+        df.sort_values(by=metric, ascending=False, inplace=True)
+        df = df.reset_index()
+        df.columns = ['name', 'value']
+        return df.to_dict(orient='records')
+
 
 class TableViz(BaseViz):
 
