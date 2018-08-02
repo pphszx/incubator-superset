@@ -738,8 +738,12 @@ class Database(Model, AuditMixinNullable, ImportMixin):
 
         with closing(engine.raw_connection()) as conn:
             with closing(conn.cursor()) as cursor:
-                for sql in sqls:
+                for sql in sqls[:-1]:
                     self.db_engine_spec.execute(cursor, sql)
+                    cursor.fetchall()
+
+                self.db_engine_spec.execute(cursor, sqls[-1])
+
                 df = pd.DataFrame.from_records(
                     data=list(cursor.fetchall()),
                     columns=[col_desc[0] for col_desc in cursor.description],
@@ -832,7 +836,7 @@ class Database(Model, AuditMixinNullable, ImportMixin):
         each database has slightly different but similar datetime functions,
         this allows a mapping between database engines and actual functions.
         """
-        return self.db_engine_spec.time_grains
+        return self.db_engine_spec.get_time_grains()
 
     def grains_dict(self):
         """Allowing to lookup grain by either label or duration

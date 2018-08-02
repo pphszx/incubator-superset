@@ -1090,7 +1090,8 @@ class Superset(BaseSupersetView):
             return json_error_response(
                 security_manager.get_datasource_access_error_msg(viz_obj.datasource),
                 status=404,
-                link=security_manager.get_datasource_access_error_msg(viz_obj.datasource))
+                link=security_manager.security_manager.get_datasource_error_link(
+                    viz_obj.datasource))
 
         if csv:
             return CsvResponse(
@@ -1279,8 +1280,8 @@ class Superset(BaseSupersetView):
 
         form_data['datasource'] = str(datasource_id) + '__' + datasource_type
 
-        # On explore, merge extra filters into the form data
-        utils.split_adhoc_filters_into_base_filters(form_data)
+        # On explore, merge legacy and extra filters into the form data
+        utils.convert_legacy_filters_into_adhoc(form_data)
         merge_extra_filters(form_data)
 
         # merge request url params
@@ -1641,7 +1642,7 @@ class Superset(BaseSupersetView):
                 session.merge(slc)
                 session.flush()
 
-        dashboard.position_json = json.dumps(positions, indent=4, sort_keys=True)
+        dashboard.position_json = json.dumps(positions, sort_keys=True)
         md = dashboard.params_dict
         dashboard.css = data.get('css')
         dashboard.dashboard_title = data['dashboard_title']
@@ -1658,7 +1659,7 @@ class Superset(BaseSupersetView):
             {key: v for key, v in default_filters_data.items()
              if int(key) in slice_ids}
         md['default_filters'] = json.dumps(applicable_filters)
-        dashboard.json_metadata = json.dumps(md, indent=4)
+        dashboard.json_metadata = json.dumps(md)
 
     @api
     @has_access_api
@@ -2425,9 +2426,8 @@ class Superset(BaseSupersetView):
         rejected_tables = security_manager.rejected_datasources(sql, mydb, schema)
         if rejected_tables:
             return json_error_response(
-                security_manager.get_datasource_access_error_msg('{}'.format(
-                    rejected_tables)),
-                link=security_manager.get_table_error_link(rejected_tables))
+                security_manager.get_table_access_error_msg(rejected_tables),
+                link=security_manager.get_table_access_link(rejected_tables))
         session.commit()
 
         select_as_cta = request.form.get('select_as_cta') == 'true'
