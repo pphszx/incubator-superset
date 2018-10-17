@@ -1822,6 +1822,8 @@ class IFrameViz(BaseViz):
     def get_df(self, query_obj=None):
         return None
 
+    def get_data(self, df):
+        return None
 
 class ParallelCoordinatesViz(BaseViz):
 
