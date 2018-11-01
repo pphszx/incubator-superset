@@ -31,6 +31,7 @@ function PivotTable(element, props) {
     numberFormat,
     numGroups,
     verboseMap,
+    timeseriesLimitMetric, // undefinded, props没有值timeseriesLimitMetric，但是Table.js里却能传输，不知道为什么
   } = props;
 
   const { html, columns } = data;
@@ -58,36 +59,30 @@ function PivotTable(element, props) {
       const metric = cols[i];
       const format = columnFormats[metric] || numberFormat || '.3s';
       const tdText = $(this)[0].textContent;
-      if (!Number.isNaN(tdText) && tdText !== '') {
+      // 只对数字格式化
+      if (!isNaN(tdText) && !isNaN(parseInt(tdText))) {
         $(this)[0].textContent = d3format(format, tdText);
         $(this).attr('data-sort', tdText);
       }
     });
   });
 
-  if (numGroups === 1) {
-    // When there is only 1 group by column,
-    // we use the DataTable plugin to make the header fixed.
-    // The plugin takes care of the scrolling so we don't need
-    // overflow: 'auto' on the table.
-    container.style.overflow = 'hidden';
-    const table = $container.find('table').DataTable({
-      paging: false,
-      searching: false,
-      bInfo: false,
-      scrollY: `${height}px`,
-      scrollCollapse: true,
-      scrollX: true,
-    });
-    table.column('-1').order('desc').draw();
+  // we use the DataTable plugin to make the header fixed.
+  // The plugin takes care of the scrolling so we don't need
+  // overflow: 'auto' on the table.
+  container.style.overflow = 'hidden';
+  const table = $container.find('table').DataTable({
+    aaSorting: [], // 默认前端不排序
+    paging: false,
+    searching: false,
+    bInfo: false,
+    scrollY: `${height}px`,
+    scrollCollapse: true,
+    scrollX: true,
+  });
+    // 已增加数据库排序，此处注释；等timeseriesLimitMetric传输成功后，再根据是否为空判断是否前端排序（如空则按首列排序）
+    // table.column('-1').order('desc').draw();
     fixDataTableBodyHeight($container.find('.dataTables_wrapper'), height);
-  } else {
-    // When there is more than 1 group by column we just render the table, without using
-    // the DataTable plugin, so we need to handle the scrolling ourselves.
-    // In this case the header is not fixed.
-    container.style.overflow = 'auto';
-    container.style.height = `${height + 10}px`;
-  }
 }
 
 PivotTable.displayName = 'PivotTable';

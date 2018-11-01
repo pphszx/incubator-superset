@@ -225,7 +225,7 @@ function TableVis(element, props) {
     const keys = columns.map(c => c.key);
     const index = keys.indexOf(sortBy);
     datatable.column(index).order(orderDesc ? 'desc' : 'asc');
-    if (metrics.indexOf(sortBy) < 0) {
+    if (rawMetrics.map(m => m.label || m).indexOf(sortBy) < 0) { //防止文字排序列被意外删除
       // Hiding the sortBy column if not in the metrics list
       datatable.column(index).visible(false);
     }

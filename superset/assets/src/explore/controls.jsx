@@ -1357,6 +1357,22 @@ export const controls = {
     description: t('Aggregate function to apply when pivoting and ' +
     'computing the total rows and columns'),
   },
+  
+  pandas_aggfunc_mhfq: {
+    type: 'TextControl',
+    label: t('汇总函数🚀'),
+    renderTrigger: false,
+    description: t('依次填写对各指标应用的汇总函数，逗号分割'),
+    default: '',
+  },
+
+  pivot_margins_name: {
+    type: 'TextControl',
+    label: t('Margins Name🎉'),
+    renderTrigger: false,
+    description: t('Label for aggregation'),
+    default: 'All',
+  },
 
   size_from: {
     type: 'TextControl',

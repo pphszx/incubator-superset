@@ -544,6 +544,14 @@ class TableViz(BaseViz):
         return d
 
     def get_data(self, df):
+
+        # 1.修复 MAX(industry) 这样的自定义指标用作排序时，会被误删除
+        # 2.防止文字排序列被意外删除
+
+        # 修复 MAX(industry) 这样的自定义指标用作排序时，会被误删除
+        df.rename(columns={self.get_metric_label(x).lower():self.get_metric_label(x) 
+                            for x in self.all_metrics},
+                            inplace=True)
         fd = self.form_data
         if (
                 not self.should_be_timeseries() and
@@ -647,12 +655,15 @@ class PivotTableViz(BaseViz):
     verbose_name = _('Pivot Table')
     credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
     is_timeseries = False
+    enforce_numerical_metrics = False
 
     def query_obj(self):
         d = super(PivotTableViz, self).query_obj()
-        groupby = self.form_data.get('groupby')
-        columns = self.form_data.get('columns')
-        metrics = self.form_data.get('metrics')
+        fd = self.form_data
+
+        groupby = fd.get('groupby')
+        columns = fd.get('columns')
+        metrics = fd.get('metrics')
         if not columns:
             columns = []
         if not groupby:
@@ -665,27 +676,91 @@ class PivotTableViz(BaseViz):
                 any(v in groupby for v in columns) or
                 any(v in columns for v in groupby)):
             raise Exception(_("Group By' and 'Columns' can't overlap"))
+        
+        # 增加排序字段
+        sort_by = fd.get('timeseries_limit_metric')
+        sort_by_label = utils.get_metric_name(sort_by)
+        if sort_by_label not in utils.get_metric_names(d['metrics']):
+            d['metrics'] += [sort_by]
+        d['orderby'] = [(sort_by, not fd.get('order_desc', True))]
+        
         return d
 
     def get_data(self, df):
+
+        fd = self.form_data
         if (
-                self.form_data.get('granularity') == 'all' and
+                fd.get('granularity') == 'all' and
                 DTTM_ALIAS in df):
             del df[DTTM_ALIAS]
+        # 1.独立汇总函数 --临时解决方案
+        # 2.自定义汇总列名称
+        # 3.保留字段顺序
+        # 4.非数值汇总行不显示 TODO：汇总列考虑要不要也不显示
+        # 5.按最后一列排序，修改为默认首列排序=》自定义排序，但只是临时方案，需要理解py到js的数据传输机制 TODO：DataTables 中文排序好像有问题，暂时无法解决
+        # 6.只对数字列应用d3.format
+        # 7.对于两个以上的分组，修复未使用 DataTables 的问题：df.to_html 增加 sparsify=False
+        # 8.TODO：增加 Options 属性，应用 DataTables 设置，与 Table 类型统一
+
+        # 修复 MAX(industry) 这样的自定义指标用作排序时，会被误删除
+        df.rename(columns={self.get_metric_label(x).lower():self.get_metric_label(x) 
+                            for x in self.all_metrics},
+                            inplace=True)
+        funcs_mhfq = fd.get('pandas_aggfunc_mhfq')
+        metrics = [self.get_metric_label(m) for m in fd.get('metrics')]
+        if funcs_mhfq:
+            funcs = [x.strip() for x in funcs_mhfq.replace('，',',').split(',')]
+            if len(funcs) == len(metrics):
+                tempfuncs = {}
+                for x in range(len(funcs)):
+                    tempfuncs[metrics[x]] = funcs[x]
+                funcs = tempfuncs
+        else:
+            funcs = [fd.get('pandas_aggfunc')]
+
         df = df.pivot_table(
-            index=self.form_data.get('groupby'),
-            columns=self.form_data.get('columns'),
-            values=[self.get_metric_label(m) for m in self.form_data.get('metrics')],
-            aggfunc=self.form_data.get('pandas_aggfunc'),
-            margins=self.form_data.get('pivot_margins'),
+            index=fd.get('groupby'),
+            columns=fd.get('columns'),
+            values=metrics,
+            aggfunc=funcs,
+            margins=fd.get('pivot_margins'),
+            margins_name = fd.get('pivot_margins_name'),
         )
+
+        # TODO：增加后端排序，等了解py至js的传输机制后，改为前端排序
+        # 只有排序字段为指标之一时才进行排序，否则按index排序
+        sort_by = fd.get('timeseries_limit_metric')
+        sort_by_label = self.get_metric_label(sort_by)
+        if sort_by_label in metrics:
+            df.sort_values(by=sort_by_label, 
+                            ascending=not fd.get('order_desc'),
+                            inplace=True)
+        else:
+            df.sort_index(inplace=True)
+
+
+        # 非数值汇总行不显示
+        if fd.get('pivot_margins'):
+            agg_row = df.iloc[-1, :]
+            agg_row_number = agg_row.map(lambda x: x if isinstance(x,(int, float, pd.np.int64,pd.np.float64)) else '')
+            df.iloc[-1, :] = agg_row_number
+
+        # 保留字段顺序
+        col = df.columns
+        if isinstance(col, pd.core.indexes.multi.MultiIndex):
+            col = col.set_levels(list(funcs), level=0)
+        else:
+            col = list(funcs)
+        df = df.reindex(columns=col)
+
         # Display metrics side by side with each column
-        if self.form_data.get('combine_metric'):
+        if fd.get('combine_metric'):
             df = df.stack(0).unstack()
         return dict(
             columns=list(df.columns),
             html=df.to_html(
                 na_rep='',
+                sparsify=False,
                 classes=(
                     'dataframe table table-striped table-bordered '
                     'table-condensed table-hover').split(' ')),

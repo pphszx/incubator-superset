@@ -1032,13 +1032,16 @@ export const visTypes = {
           ['adhoc_filters'],
           ['groupby'],
           ['columns'],
-          ['row_limit', null],
+          ['timeseries_limit_metric', 'row_limit'],
+          ['include_time', 'order_desc'],
         ],
       },
       {
         label: t('Pivot Options'),
         controlSetRows: [
           ['pandas_aggfunc', 'pivot_margins'],
+          ['pandas_aggfunc_mhfq'],
+          ['pivot_margins_name', null],
           ['number_format', 'combine_metric'],
         ],
       },
