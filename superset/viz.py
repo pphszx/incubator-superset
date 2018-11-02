@@ -677,12 +677,13 @@ class PivotTableViz(BaseViz):
                 any(v in columns for v in groupby)):
             raise Exception(_("Group By' and 'Columns' can't overlap"))
         
-        # 增加排序字段
+        # 增加非空排序字段
         sort_by = fd.get('timeseries_limit_metric')
-        sort_by_label = utils.get_metric_name(sort_by)
-        if sort_by_label not in utils.get_metric_names(d['metrics']):
-            d['metrics'] += [sort_by]
-        d['orderby'] = [(sort_by, not fd.get('order_desc', True))]
+        if sort_by:
+            sort_by_label = utils.get_metric_name(sort_by)
+            if sort_by_label not in utils.get_metric_names(d['metrics']):
+                d['metrics'] += [sort_by]
+            d['orderby'] = [(sort_by, not fd.get('order_desc', True))]
         
         return d
 
