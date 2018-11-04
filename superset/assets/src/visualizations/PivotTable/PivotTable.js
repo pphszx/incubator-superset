@@ -74,7 +74,7 @@ function PivotTable(element, props) {
   const table = $container.find('table').DataTable({
     aaSorting: [], // 默认前端不排序
     paging: false,
-    searching: false,
+    searching: true,
     bInfo: false,
     scrollY: `${height}px`,
     scrollCollapse: true,

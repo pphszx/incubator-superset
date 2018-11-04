@@ -728,33 +728,36 @@ class PivotTableViz(BaseViz):
             margins_name = fd.get('pivot_margins_name'),
         )
 
-        # TODO：增加后端排序，等了解py至js的传输机制后，改为前端排序
-        # 只有排序字段为指标之一时才进行排序，否则按index排序
-        sort_by = fd.get('timeseries_limit_metric')
-        sort_by_label = self.get_metric_label(sort_by)
-        if sort_by_label in metrics:
-            df.sort_values(by=sort_by_label, 
-                            ascending=not fd.get('order_desc'),
-                            inplace=True)
-        else:
-            df.sort_index(inplace=True)
-
-
         # 非数值汇总行不显示
         if fd.get('pivot_margins'):
             agg_row = df.iloc[-1, :]
             agg_row_number = agg_row.map(lambda x: x if isinstance(x,(int, float, pd.np.int64,pd.np.float64)) else '')
             df.iloc[-1, :] = agg_row_number
 
-        # 保留字段顺序
+        # 保留字段顺序；将MultiIndex类型改为Index类型
         col = df.columns
         if isinstance(col, pd.core.indexes.multi.MultiIndex):
-            col = col.set_levels(list(funcs), level=0)
+            col = col.set_levels(list(metrics), level=1)
+            df = df.reindex(columns=col)
+            df.columns = df.columns.droplevel(level=0)
         else:
-            col = list(funcs)
-        df = df.reindex(columns=col)
+            col = list(metrics)
+            df = df.reindex(columns=col)
+
+        # TODO：增加后端排序，等了解py至js的传输机制后，改为前端排序
+        # 只有排序字段为指标之一时才进行排序，否则按index排序
+        sort_by = fd.get('timeseries_limit_metric')
+        sort_by_label = self.get_metric_label(sort_by)
+        if sort_by_label in metrics and sort_by_label in df.columns:
+            df.sort_values(by=sort_by_label, 
+                            ascending=not fd.get('order_desc'),
+                            inplace=True)
+        else:
+            df.sort_index(inplace=True)
 
         # Display metrics side by side with each column
+        # TODO：pd.to_html默认会去掉字符两侧的空格，导致前段显示的名称不一致
+        # 比如：' 上海铭悦医疗美容门诊部有限公司' 和 '上海铭悦医疗美容门诊部有限公司'
         if fd.get('combine_metric'):
             df = df.stack(0).unstack()
         return dict(
