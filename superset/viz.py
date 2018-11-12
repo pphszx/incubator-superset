@@ -698,32 +698,46 @@ class PivotTableViz(BaseViz):
         # 2.自定义汇总列名称
         # 3.保留字段顺序
         # 4.非数值汇总行不显示 TODO：汇总列考虑要不要也不显示
-        # 5.按最后一列排序，修改为默认首列排序=》自定义排序，但只是临时方案，需要理解py到js的数据传输机制 TODO：DataTables 中文排序好像有问题，暂时无法解决
+        # 5.按最后一列排序，修改为自定义排序 TODO：DataTables 中文排序好像有问题，暂时无法解决
         # 6.只对数字列应用d3.format
         # 7.对于两个以上的分组，修复未使用 DataTables 的问题：df.to_html 增加 sparsify=False
-        # 8.TODO：增加 Options 属性，应用 DataTables 设置，与 Table 类型统一
+        # 8.增加 Options 属性，应用 DataTables 设置，与 Table 类型统一
 
         # 修复 MAX(industry) 这样的自定义指标用作排序时，会被误删除
         df.rename(columns={self.get_metric_label(x).lower():self.get_metric_label(x) 
                             for x in self.all_metrics},
                             inplace=True)
-        funcs_mhfq = fd.get('pandas_aggfunc_mhfq')
+
+        # 当存在自定义汇总函数，只有指标数量和汇总函数数量一致时，才一一对应；否则只采用第一个
         metrics = [self.get_metric_label(m) for m in fd.get('metrics')]
+        funcs_mhfq = fd.get('pandas_aggfunc_mhfq')
+        d_funcs = {}
         if funcs_mhfq:
             funcs = [x.strip() for x in funcs_mhfq.replace('，',',').split(',')]
             if len(funcs) == len(metrics):
-                tempfuncs = {}
-                for x in range(len(funcs)):
-                    tempfuncs[metrics[x]] = funcs[x]
-                funcs = tempfuncs
+                for x in range(len(metrics)):
+                    d_funcs[metrics[x]] = funcs[x]
+            else:
+                for x in range(len(metrics)):
+                    d_funcs[metrics[x]] = funcs[0]
         else:
-            funcs = [fd.get('pandas_aggfunc')]
+            funcs = fd.get('pandas_aggfunc')
+            for x in range(len(metrics)):
+                    d_funcs[metrics[x]] = funcs
+
+        # 如果排序字段不在metrics里，则加入metrics
+        sort_by = fd.get('timeseries_limit_metric')
+        if sort_by:
+            sort_by_label = self.get_metric_label(sort_by)
+            if sort_by_label not in metrics:
+                metrics += [sort_by_label]
+                d_funcs[sort_by_label] = 'max'
 
         df = df.pivot_table(
             index=fd.get('groupby'),
             columns=fd.get('columns'),
             values=metrics,
-            aggfunc=funcs,
+            aggfunc=d_funcs,
             margins=fd.get('pivot_margins'),
             margins_name = fd.get('pivot_margins_name'),
         )
@@ -734,7 +748,7 @@ class PivotTableViz(BaseViz):
             agg_row_number = agg_row.map(lambda x: x if isinstance(x,(int, float, pd.np.int64,pd.np.float64)) else '')
             df.iloc[-1, :] = agg_row_number
 
-        # 保留字段顺序；将MultiIndex类型改为Index类型
+        # 保留字段顺序；将MultiIndex类型改为Index类型 TODO：增加 列 时，报错
         col = df.columns
         if isinstance(col, pd.core.indexes.multi.MultiIndex):
             col = col.set_levels(list(metrics), level=1)
@@ -743,17 +757,6 @@ class PivotTableViz(BaseViz):
         else:
             col = list(metrics)
             df = df.reindex(columns=col)
-
-        # TODO：增加后端排序，等了解py至js的传输机制后，改为前端排序
-        # 只有排序字段为指标之一时才进行排序，否则按index排序
-        sort_by = fd.get('timeseries_limit_metric')
-        sort_by_label = self.get_metric_label(sort_by)
-        if sort_by_label in metrics and sort_by_label in df.columns:
-            df.sort_values(by=sort_by_label, 
-                            ascending=not fd.get('order_desc'),
-                            inplace=True)
-        else:
-            df.sort_index(inplace=True)
 
         # Display metrics side by side with each column
         # TODO：pd.to_html默认会去掉字符两侧的空格，导致前段显示的名称不一致

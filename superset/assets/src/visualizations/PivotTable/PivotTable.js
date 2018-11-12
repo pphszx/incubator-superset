@@ -27,11 +27,19 @@ function PivotTable(element, props) {
   const {
     data,
     height,
+    alignPositiveNegative = alignPn,
+    colorPositiveNegative = colorPn,
+    includeSearch,
+    metrics,
+    orderDesc,
+    pageLength,
+    tableFilter,
+    tableTimestampFormat,
     columnFormats,
     numberFormat,
     numGroups,
     verboseMap,
-    timeseriesLimitMetric, // undefinded, props没有值timeseriesLimitMetric，但是Table.js里却能传输，不知道为什么
+    timeseriesLimitMetric,
   } = props;
 
   const { html, columns } = data;
@@ -71,18 +79,44 @@ function PivotTable(element, props) {
   // The plugin takes care of the scrolling so we don't need
   // overflow: 'auto' on the table.
   container.style.overflow = 'hidden';
+
+  const paging = pageLength && pageLength > 0;
+
   const table = $container.find('table').DataTable({
-    aaSorting: [], // 默认前端不排序
-    paging: false,
-    searching: true,
+    paging,
+    pageLength,
+    aaSorting: [],
+    searching: includeSearch,
     bInfo: false,
     scrollY: `${height}px`,
     scrollCollapse: true,
     scrollX: true,
   });
-    // 已增加数据库排序，此处注释；等timeseriesLimitMetric传输成功后，再根据是否为空判断是否前端排序（如空则按首列排序）
-    // table.column('-1').order('desc').draw();
-    fixDataTableBodyHeight($container.find('.dataTables_wrapper'), height);
+  fixDataTableBodyHeight($container.find('.dataTables_wrapper'), height);
+
+  // 已增加数据库排序，此处注释；等timeseriesLimitMetric传输成功后，再根据是否为空判断是否前端排序（如空则按首列排序）
+  // Sorting table by main column
+  let sortBy;
+  const limitMetric = Array.isArray(timeseriesLimitMetric)
+    ? timeseriesLimitMetric[0]
+    : timeseriesLimitMetric;
+  if (limitMetric) {
+    // Sort by as specified
+    sortBy = limitMetric.label || limitMetric;
+  } else if (metrics.length > 0) {
+    // If not specified, use the first metric from the list
+    sortBy = metrics[0];
+  }
+  if (sortBy) {
+    const keys = columns.map(c => c.key);
+    const index = keys.indexOf(sortBy);
+    table.column(index).order(orderDesc ? 'desc' : 'asc');
+    if (metrics.map(m => m.label || m).indexOf(sortBy) < 0) { //防止文字排序列被意外删除
+      // Hiding the sortBy column if not in the metrics list
+      table.column(index).visible(false);
+    }
+  }
+  table.draw();
 }
 
 PivotTable.displayName = 'PivotTable';

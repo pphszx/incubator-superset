@@ -1045,6 +1045,16 @@ export const visTypes = {
           ['number_format', 'combine_metric'],
         ],
       },
+      {
+        label: t('Options'),
+        expanded: true,
+        controlSetRows: [
+          ['table_timestamp_format'],
+          ['page_length', null],
+          ['include_search', 'table_filter'],
+          ['align_pn', 'color_pn'],
+        ],
+      },
     ],
     controlOverrides: {
       groupby: { includeTime: true },
