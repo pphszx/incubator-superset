@@ -53,7 +53,7 @@ module.exports = function (slice, payload) {
       scrollCollapse: true,
       scrollX: true,
     });
-    table.column('-1').order('desc').draw();
+    table.column('0').order('asc').draw();
     fixDataTableBodyHeight(container.find('.dataTables_wrapper'), height);
   } else {
     // When there is more than 1 group by column we just render the table, without using
