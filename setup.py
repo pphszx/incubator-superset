@@ -69,6 +69,7 @@ setup(
         'flask-wtf',
         'flower',  # deprecated
         'geopy',
+        'grpcio-tools',
         'gunicorn',  # deprecated
         'humanize',
         'idna',

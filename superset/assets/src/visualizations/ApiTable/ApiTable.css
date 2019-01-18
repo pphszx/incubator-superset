@@ -1,0 +1,5 @@
+.ant-table td {
+  white-space: nowrap; /* 强制不换行 */
+  /* overflow: hidden; 超出部分隐藏 */
+  /* text-overflow: ellipsis; 显示省略符号来代表被修剪的文本 */
+}

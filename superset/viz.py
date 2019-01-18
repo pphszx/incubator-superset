@@ -202,6 +202,10 @@ class BaseViz(object):
 
         self.error_msg = ''
 
+        if self.viz_type == 'api_table':
+            df = pd.DataFrame([1])
+            return df
+
         timestamp_format = None
         if self.datasource.type == 'table':
             dttm_col = self.datasource.get_col(query_obj['granularity'])
@@ -697,6 +701,16 @@ class PivotTableViz(BaseViz):
                     'dataframe table table-striped table-bordered '
                     'table-condensed table-hover').split(' ')),
         )
+
+
+class ApiTableViz(BaseViz):
+
+    """A API table view, whose data came from your customized API"""
+
+    viz_type = 'api_table'
+    verbose_name = _('API Table')
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
+    is_timeseries = False
 
 
 class MarkupViz(BaseViz):

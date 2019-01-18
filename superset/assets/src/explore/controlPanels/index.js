@@ -5,6 +5,7 @@
 import { isFeatureEnabled, FeatureFlag } from 'src/featureFlags';
 import * as sections from './sections';
 
+import ApiTable from './ApiTable';
 import Area from './Area';
 import Bar from './Bar';
 import BigNumber from './BigNumber';
@@ -55,6 +56,7 @@ import DeckScatter from './DeckScatter';
 import DeckScreengrid from './DeckScreengrid';
 
 export const controlPanelConfigs = {
+  api_table: ApiTable,
   area: Area,
   bar: Bar,
   big_number: BigNumber,

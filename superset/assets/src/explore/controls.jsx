@@ -2280,5 +2280,23 @@ export const controls = {
     description: t('Whether to normalize the histogram'),
     default: false,
   },
+
+  external_api_service: {
+    type: 'SelectControl',
+    label: t('External API Service'),
+    choices: formatSelectOptions(['rpc', 'grpc', 'restful']),
+    clearable: false,
+    description: t('The external API.'),
+    default: 'rpc',
+    renderTrigger: false,
+  },
+
+  external_api_param: {
+    type: 'TextControl',
+    label: t('External API Parameters'),
+    description: t('The URL of your API.'),
+    default: '',
+    renderTrigger: false,
+  },
 };
 export default controls;

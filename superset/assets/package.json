@@ -60,6 +60,7 @@
     "@vx/responsive": "0.0.172",
     "@vx/scale": "^0.0.165",
     "abortcontroller-polyfill": "^1.1.9",
+    "antd": "^3.12.3",
     "babel-register": "^6.24.1",
     "bootstrap": "^3.3.6",
     "bootstrap-slider": "^10.0.0",
@@ -136,7 +137,8 @@
     "supercluster": "^4.1.1",
     "underscore": "^1.8.3",
     "urijs": "^1.18.10",
-    "viewport-mercator-project": "^5.0.0"
+    "viewport-mercator-project": "^5.0.0",
+    "xlsx": "^0.14.1"
   },
   "devDependencies": {
     "@types/jest": "^23.3.5",

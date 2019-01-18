@@ -1,4 +1,5 @@
 import { Preset } from '@superset-ui/core';
+import ApiTableChartPlugin from '../ApiTable/ApiTableChartPlugin';
 import AreaChartPlugin from '../nvd3/Area/AreaChartPlugin';
 import BarChartPlugin from '../nvd3/Bar/BarChartPlugin';
 import BigNumberChartPlugin from '../BigNumber/BigNumberChartPlugin';
@@ -20,6 +21,7 @@ export default class CommonChartPreset extends Preset {
     super({
       name: 'Common charts',
       plugins: [
+        new ApiTableChartPlugin().configure({ key: 'api_table' }),
         new AreaChartPlugin().configure({ key: 'area' }),
         new BarChartPlugin().configure({ key: 'bar' }),
         new BigNumberChartPlugin().configure({ key: 'big_number' }),
