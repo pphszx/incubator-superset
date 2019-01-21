@@ -68,7 +68,7 @@ class Sachima(BaseSupersetView):
         CONFIG = {'AMQP_URI': conf.get('API_URL_CONFIG').get('RPC')}
         with ClusterRpcProxy(CONFIG) as rpc:
             res = rpc.data.get_report(req_params)
-        result = json.loads(res)
+        result = res
         return jsonify(result), 201
 
     @Log.log_this
