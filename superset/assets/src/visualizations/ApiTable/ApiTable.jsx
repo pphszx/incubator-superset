@@ -75,11 +75,11 @@ class ApiTableRaw extends React.Component {
 
         fetch(transferUrl, {
             method: "POST", // *GET, POST, PUT, DELETE, etc.
-            mode: "cors", // no-cors, cors, *same-origin
-            credentials: "include", // include, *same-origin, omit
+            mode: "same-origin", // no-cors, cors, *same-origin
+            credentials: "same-origin", // include, *same-origin, omit
             headers: {
-                'Accept': '*/*',
-                "Content-Type": "multipart/form-data",
+                'Accept': 'application/json',
+                "Content-Type": "application/json; charset=utf-8",
                 // "Content-Type": "application/x-www-form-urlencoded",
                 "Connection": "keep-alive",
                 'X-CSRF-TOKEN': csrfToken,
