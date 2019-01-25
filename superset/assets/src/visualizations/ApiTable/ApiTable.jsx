@@ -65,7 +65,7 @@ class ApiTableRaw extends React.Component {
         // TODO：moment类型toJSON时修改为显示时间
         var replacer = function(key, value) {
 
-            console.log(value, typeof(value));
+            // console.log(value, typeof(value));
             if (value instanceof moment) {
                 console.log(value.toUTCString())
                 return value.toUTCString();
@@ -75,12 +75,13 @@ class ApiTableRaw extends React.Component {
 
         fetch(transferUrl, {
             method: "POST", // *GET, POST, PUT, DELETE, etc.
-            mode: "same-origin", // no-cors, cors, *same-origin
-            credentials: "same-origin", // include, *same-origin, omit
+            mode: "cors", // no-cors, cors, *same-origin
+            credentials: "include", // include, *same-origin, omit
             headers: {
-                'Accept': 'application/json',
-                "Content-Type": "application/json; charset=utf-8",
+                'Accept': '*/*',
+                "Content-Type": "multipart/form-data",
                 // "Content-Type": "application/x-www-form-urlencoded",
+                "Connection": "keep-alive",
                 'X-CSRF-TOKEN': csrfToken,
             },
             // redirect: "follow", // manual, *follow, error
@@ -89,11 +90,13 @@ class ApiTableRaw extends React.Component {
         })
             .then(Response => Response.json())
             .then(result => this.setDataSource(result))
-            .catch(error => this.setState({ isError: error }));
+            .catch(error => {
+                console.log(error);
+                this.setState({ isError: error });
+            });
     }
 
     setDataSource(data) {
-        console.log(data);
         const { 
             dataSource,
             columns,
@@ -104,8 +107,8 @@ class ApiTableRaw extends React.Component {
             dataSource: dataSource,
             columns: columns,
             loading: false,
-            }
-        );
+        });
+        console.log(data);
     }
 
     onSearchSubmit(event) {
@@ -155,22 +158,58 @@ class ApiTableRaw extends React.Component {
         if (controls) {
             const { getFieldDecorator } = this.props.form;
             
-            const count = expand ? controls.length : 2;
+            const count = expand ? controls.length : 3;
             children = controls.map(
                 (item, index) => {
                     const CustomTag = Components[`${item.type}`];
                     const options = item.option ? item.option.map(c => <Option value={ c }>{ c }</Option>) : null;
+
+                    const props = item.props
+                        ? Object.keys(item.props).filter(s=>s!=='value').reduce((obj, key) => {
+                            obj[key] = item.props[key];
+                            return obj;
+                        }, {})
+                        : null;
+
+                    // 应该可以简化
+                    let value = null;
+                    if (item.props) {
+                        const propsAll = Object.keys(item.props);
+                        if (propsAll.includes('value')) {
+                            if (['DatePicker', 'MonthPicker', 'RangePicker', 'WeekPicker'].includes(item.type)) {
+                                if (propsAll.includes('format')) {
+                                    value = moment(item.props.value, item.props.format);
+                                }
+                            } else {
+                                value = item.props.value;
+                            }
+                        };
+                    };
+
+                    // 应该可以合并
                     return <Col span={8} key={index} style={{ display: index < count ? 'block' : 'none' }}>
-                        <FormItem label={`${item.id}`}>
-                            {getFieldDecorator(`${item.id}`, {})(
+                        { value
+                        ? <FormItem label={`${item.id}`}>
+                            {getFieldDecorator(`${item.id}`, {initialValue: value})(
                                 <CustomTag
-                                    {...item.props}
+                                    {...props}
                                     // onChange={(...args) => { this.onSearchChange(item, ...args); }}
                                 >
                                     {options}
                                 </CustomTag>
                             )}
                         </FormItem>
+                        : <FormItem label={`${item.id}`}>
+                        {getFieldDecorator(`${item.id}`, {})(
+                            <CustomTag
+                                {...props}
+                                // onChange={(...args) => { this.onSearchChange(item, ...args); }}
+                            >
+                                {options}
+                            </CustomTag>
+                        )}
+                        </FormItem>
+                        }
                     </Col>
                 }
             )
