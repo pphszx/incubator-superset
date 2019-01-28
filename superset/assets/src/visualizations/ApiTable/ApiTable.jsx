@@ -291,7 +291,8 @@ class ApiTableRaw extends React.Component {
                                 <Button icon="download" style={{ marginLeft: 8 }} disabled={loading} onClick={this.OnDownload}>
                                     下载
                                 </Button>
-                                <a style={{ marginLeft: 10, fontSize: 12 }} onClick={this.OnToggle}>
+                                <a style={{ marginLeft: 10, fontSize: 14 }} onClick={this.OnToggle}>
+                                    {this.state.expand ? '收起' : '展开'}
                                     <Icon type={this.state.expand ? 'up' : 'down'} />
                                 </a>
                             </Col>
