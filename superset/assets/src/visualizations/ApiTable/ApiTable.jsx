@@ -162,6 +162,7 @@ class ApiTableRaw extends React.Component {
             children = controls.map(
                 (item, index) => {
                     const CustomTag = Components[`${item.type}`];
+                    const CustomLabel = item.label ? item.label : item.id;
                     const options = item.option ? item.option.map(c => <Option value={ c }>{ c }</Option>) : null;
 
                     const props = item.props
@@ -189,7 +190,7 @@ class ApiTableRaw extends React.Component {
                     // 应该可以合并
                     return <Col span={8} key={index} style={{ display: index < count ? 'block' : 'none' }}>
                         { value
-                        ? <FormItem label={`${item.id}`}>
+                        ? <FormItem label={`${CustomLabel}`}>
                             {getFieldDecorator(`${item.id}`, {initialValue: value})(
                                 <CustomTag
                                     {...props}
@@ -199,7 +200,7 @@ class ApiTableRaw extends React.Component {
                                 </CustomTag>
                             )}
                         </FormItem>
-                        : <FormItem label={`${item.id}`}>
+                        : <FormItem label={`${CustomLabel}`}>
                         {getFieldDecorator(`${item.id}`, {})(
                             <CustomTag
                                 {...props}
