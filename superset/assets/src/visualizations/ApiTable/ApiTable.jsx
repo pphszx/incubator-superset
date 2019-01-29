@@ -163,7 +163,11 @@ class ApiTableRaw extends React.Component {
                 (item, index) => {
                     const CustomTag = Components[`${item.type}`];
                     const CustomLabel = item.label ? item.label : item.id;
-                    const options = item.option ? item.option.map(c => <Option value={ c }>{ c }</Option>) : null;
+                    const options = item.option 
+                        ? item.option.sort(
+                            (opt1, opt2) => (opt1 < opt2) ? -1 : 1).map(
+                                c => <Option value={ c }>{ c }</Option>) 
+                        : null;
 
                     const props = item.props
                         ? Object.keys(item.props).filter(s=>s!=='value').reduce((obj, key) => {
@@ -229,6 +233,7 @@ class ApiTableRaw extends React.Component {
                     colObj["dataIndex"] = col;
                     colObj["key"] = col;
                     colObj["width"] = col_width;
+                    colObj['sorter'] = (opt1, opt2) => (opt1[col] < opt2[col]) ? -1 : 1;
                     return colObj;
                 }
             )
