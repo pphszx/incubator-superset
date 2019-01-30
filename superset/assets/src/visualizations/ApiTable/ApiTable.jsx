@@ -204,7 +204,9 @@ class ApiTableRaw extends React.Component {
                     </div>
                 ),
             filterIcon: filtered => <Icon type="search" style={{ color: filtered ? '#1890ff' : undefined }} />,
-            onFilter: (value, record) => record[dataIndex].toString().toLowerCase().includes(value.toLowerCase()),
+            onFilter: (value, record) => record[dataIndex]
+                ? record[dataIndex].toString().toLowerCase().includes(value.toLowerCase())
+                : false,
             onFilterDropdownVisibleChange: (visible) => {
                 if (visible) {
                     setTimeout(() => this.searchInput.select());
