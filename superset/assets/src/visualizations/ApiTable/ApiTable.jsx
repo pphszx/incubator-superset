@@ -36,6 +36,7 @@ class ApiTableRaw extends React.Component {
             isError: null,
             loading: false,
             expand: false,
+            searchText: '',
         };
 
         this.fetchData = this.fetchData.bind(this);
@@ -47,6 +48,8 @@ class ApiTableRaw extends React.Component {
         this.getAntdDataSource = this.getAntdDataSource.bind(this);
         this.OnToggle = this.OnToggle.bind(this);
         this.OnDownload = this.OnDownload.bind(this);
+        this.onTableSearch = this.onTableSearch.bind(this);
+        this.onTableReset = this.onTableReset.bind(this);
     }
 
     componentDidMount() {
@@ -149,6 +152,58 @@ class ApiTableRaw extends React.Component {
         xlsx.writeFile(wb, `Superset Export ${moment().format("YYYY-MM-DD HH:mm:ss")}.xlsx`, {compression:true});
     }
 
+    onTableSearch(selectedKeys, confirm) {
+        confirm();
+        this.setState({ searchText: selectedKeys[0] });
+    }
+    
+    onTableReset(clearFilters) {
+        clearFilters();
+        this.setState({ searchText: '' });
+    }
+
+    getColumnSearchProps(dataIndex) {
+        return {
+            filterDropdown: ({
+                setSelectedKeys, selectedKeys, confirm, clearFilters,
+            }) => (
+                    <div style={{ padding: 8 }}>
+                        <Input
+                            ref={node => { this.searchInput = node; }}
+                            placeholder={`搜索 ${dataIndex}`}
+                            value={selectedKeys[0]}
+                            onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+                            onPressEnter={() => this.onTableSearch(selectedKeys, confirm)}
+                            style={{ width: 188, marginBottom: 8, display: 'block' }}
+                        />
+                        <Button
+                            type="primary"
+                            onClick={() => this.onTableSearch(selectedKeys, confirm)}
+                            icon="search"
+                            size="small"
+                            style={{ width: 90, marginRight: 8 }}
+                        >
+                            确定
+                        </Button>
+                        <Button
+                            onClick={() => this.onTableReset(clearFilters)}
+                            size="small"
+                            style={{ width: 90 }}
+                        >
+                            重置
+                        </Button>
+                    </div>
+                ),
+            filterIcon: filtered => <Icon type="search" style={{ color: filtered ? '#1890ff' : undefined }} />,
+            onFilter: (value, record) => record[dataIndex].toString().toLowerCase().includes(value.toLowerCase()),
+            onFilterDropdownVisibleChange: (visible) => {
+                if (visible) {
+                    setTimeout(() => this.searchInput.select());
+                }
+            },
+        }
+    }
+
     getControls() {
         const {
             controls,
@@ -234,6 +289,7 @@ class ApiTableRaw extends React.Component {
                     colObj["key"] = col;
                     colObj["width"] = col_width;
                     colObj['sorter'] = (opt1, opt2) => (opt1[col] < opt2[col]) ? -1 : 1;
+                    Object.assign(colObj, this.getColumnSearchProps(col));
                     return colObj;
                 }
             )
