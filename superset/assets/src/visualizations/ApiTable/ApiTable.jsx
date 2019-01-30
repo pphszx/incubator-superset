@@ -32,6 +32,7 @@ class ApiTableRaw extends React.Component {
         this.state = {
             date: '',
             dataSource: [],
+            controls: [],
             columns: [],
             isError: null,
             loading: false,
@@ -56,11 +57,11 @@ class ApiTableRaw extends React.Component {
         const { externalApiService } = this.props;
         this.props.form.validateFields((err, values) => {
             // console.log('Form值: ', values);
-            this.fetchData(externalApiService, values);
+            this.fetchData(externalApiService, values, true);
           });
     }
 
-    fetchData(transferUrl, params) {
+    fetchData(transferUrl, params, isUpdateControls=false) {
         this.setState({ loading: true });
 
         const csrfToken = document.getElementById("csrf_token").value;
@@ -92,25 +93,33 @@ class ApiTableRaw extends React.Component {
             body: JSON.stringify(params, replacer), // body data type must match "Content-Type" header
         })
             .then(Response => Response.json())
-            .then(result => this.setDataSource(result))
+            .then(result => this.setDataSource(result, isUpdateControls))
             .catch(error => {
                 console.log(error);
                 this.setState({ isError: error });
             });
     }
 
-    setDataSource(data) {
+    setDataSource(data, isUpdateControls) {
         const { 
             dataSource,
             columns,
             controls,
         } = data;
-        this.setState({
-            controls: controls,
-            dataSource: dataSource,
-            columns: columns,
-            loading: false,
-        });
+        if (isUpdateControls) {
+            this.setState({
+                controls: controls,
+                dataSource: dataSource,
+                columns: columns,
+                loading: false,
+            });
+        } else {
+            this.setState({
+                dataSource: dataSource,
+                columns: columns,
+                loading: false,
+            });
+        };
         console.log(data);
     }
 
