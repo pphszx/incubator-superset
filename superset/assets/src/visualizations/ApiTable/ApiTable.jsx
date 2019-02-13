@@ -250,11 +250,21 @@ class ApiTableRaw extends React.Component {
                             if (item.type === 'RangePicker') {
                                 if (propsAll.includes('format')) {
                                     value = [moment(item.props.value[0], item.props.format), moment(item.props.value[1], item.props.format)];
-                                }
+                                };
+                                if (propsAll.includes('showTime') && props.showTime) {
+                                    props['showTime'] = {
+                                        defaultValue: [moment('00:00:00', 'HH:mm:ss'), moment('23:59:59', 'HH:mm:ss')],
+                                    }
+                                };
                             } else if (['DatePicker', 'MonthPicker', 'WeekPicker'].includes(item.type)) {
                                 if (propsAll.includes('format')) {
                                     value = moment(item.props.value, item.props.format);
-                                }
+                                };
+                                if (propsAll.includes('showTime') && props.showTime) {
+                                    props['showTime'] = {
+                                        defaultValue: moment('00:00:00', 'HH:mm:ss'),
+                                    }
+                                };
                             } else {
                                 value = item.props.value;
                             }
