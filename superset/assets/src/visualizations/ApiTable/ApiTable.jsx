@@ -68,10 +68,10 @@ class ApiTableRaw extends React.Component {
 
         // moment类型转化为字符串
         for (let [key, value] of Object.entries(params)) {
-            if (value instanceof moment) {
+            if (moment.isMoment(value)) {
                 params[key] = value.format("YYYY-MM-DD HH:mm:ss")
             } else if (value instanceof Array) {
-                if (value[0] instanceof moment) {
+                if (moment.isMoment(value[0])) {
                     params[key] = value.map(item => item.format("YYYY-MM-DD HH:mm:ss"))
                 }
             }
@@ -242,33 +242,25 @@ class ApiTableRaw extends React.Component {
                         }, {})
                         : null;
 
-                    // 应该可以简化
+                    // 根据类型初始化
                     let value = null;
                     if (item.props) {
                         const propsAll = Object.keys(item.props);
-                        if (propsAll.includes('value')) {
-                            if (item.type === 'RangePicker') {
-                                if (propsAll.includes('format')) {
-                                    value = [moment(item.props.value[0], item.props.format), moment(item.props.value[1], item.props.format)];
-                                };
-                                if (propsAll.includes('showTime') && props.showTime) {
-                                    props['showTime'] = {
-                                        defaultValue: [moment('00:00:00', 'HH:mm:ss'), moment('23:59:59', 'HH:mm:ss')],
-                                    }
-                                };
-                            } else if (['DatePicker', 'MonthPicker', 'WeekPicker'].includes(item.type)) {
-                                if (propsAll.includes('format')) {
-                                    value = moment(item.props.value, item.props.format);
-                                };
-                                if (propsAll.includes('showTime') && props.showTime) {
-                                    props['showTime'] = {
-                                        defaultValue: moment('00:00:00', 'HH:mm:ss'),
-                                    }
-                                };
-                            } else {
+                        if (item.type === 'RangePicker') {
+                            props['showTime'] = { defaultValue: [moment('00:00:00', 'HH:mm:ss'), moment('23:59:59', 'HH:mm:ss')] }
+                            if (propsAll.includes('value') && propsAll.includes('format')) {
+                                value = [moment(item.props.value[0], item.props.format), moment(item.props.value[1], item.props.format)];
+                            };
+                        } else if (['DatePicker', 'MonthPicker', 'WeekPicker'].includes(item.type)) {
+                            props['showTime'] = { defaultValue: moment('00:00:00', 'HH:mm:ss') }
+                            if (propsAll.includes('value') && propsAll.includes('format')) {
+                                value = moment(item.props.value, item.props.format);
+                            };
+                        } else {
+                            if (propsAll.includes('value')) {
                                 value = item.props.value;
                             }
-                        };
+                        }
                     };
 
                     // 应该可以合并
