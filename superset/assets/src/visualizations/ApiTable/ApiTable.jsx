@@ -66,16 +66,16 @@ class ApiTableRaw extends React.Component {
 
         const csrfToken = document.getElementById("csrf_token").value;
 
-        // TODO：moment类型toJSON时修改为显示时间
-        var replacer = function(key, value) {
-
-            // console.log(value, typeof(value));
+        // moment类型转化为字符串
+        for (let [key, value] of Object.entries(params)) {
             if (value instanceof moment) {
-                console.log(value.toUTCString())
-                return value.toUTCString();
-            };
-            return value;
-         }
+                params[key] = value.format("YYYY-MM-DD HH:mm:ss")
+            } else if (value instanceof Array) {
+                if (value[0] instanceof moment) {
+                    params[key] = value.map(item => item.format("YYYY-MM-DD HH:mm:ss"))
+                }
+            }
+        }
 
         fetch(transferUrl, {
             method: "POST", // *GET, POST, PUT, DELETE, etc.
@@ -90,7 +90,7 @@ class ApiTableRaw extends React.Component {
             },
             // redirect: "follow", // manual, *follow, error
             // referrer: "no-referrer", // no-referrer, *client
-            body: JSON.stringify(params, replacer), // body data type must match "Content-Type" header
+            body: JSON.stringify(params), // body data type must match "Content-Type" header
         })
             .then(Response => Response.json())
             .then(result => this.setDataSource(result, isUpdateControls))
@@ -247,7 +247,11 @@ class ApiTableRaw extends React.Component {
                     if (item.props) {
                         const propsAll = Object.keys(item.props);
                         if (propsAll.includes('value')) {
-                            if (['DatePicker', 'MonthPicker', 'RangePicker', 'WeekPicker'].includes(item.type)) {
+                            if (item.type === 'RangePicker') {
+                                if (propsAll.includes('format')) {
+                                    value = [moment(item.props.value[0], item.props.format), moment(item.props.value[1], item.props.format)];
+                                }
+                            } else if (['DatePicker', 'MonthPicker', 'WeekPicker'].includes(item.type)) {
                                 if (propsAll.includes('format')) {
                                     value = moment(item.props.value, item.props.format);
                                 }
@@ -358,7 +362,7 @@ class ApiTableRaw extends React.Component {
                                     查询
                                 </Button>
                                 <Button icon="delete" style={{ marginLeft: 8 }} onClick={this.OnReset}>
-                                    清空
+                                    重置
                                 </Button>
                                 <Button icon="download" style={{ marginLeft: 8 }} disabled={loading} onClick={this.OnDownload}>
                                     下载
