@@ -36,7 +36,7 @@ class ApiTableRaw extends React.Component {
             columns: [],
             isError: null,
             loading: false,
-            expand: false,
+            expand: true,
             searchText: '',
         };
 
@@ -224,71 +224,83 @@ class ApiTableRaw extends React.Component {
         if (controls) {
             const { getFieldDecorator } = this.props.form;
             
-            const count = expand ? controls.length : 3;
-            children = controls.map(
-                (item, index) => {
-                    const CustomTag = Components[`${item.type}`];
-                    const CustomLabel = item.label ? item.label : item.id;
-                    const options = item.option 
-                        ? item.option.sort(
-                            (opt1, opt2) => (opt1 < opt2) ? -1 : 1).map(
-                                c => <Option value={ c }>{ c }</Option>) 
-                        : null;
+            let controls_array = [];
+            for (let i=0; i<=controls.length; i=i+3) {
+                controls_array.push(controls.slice(i, i+3))
+            }
 
-                    const props = item.props
-                        ? Object.keys(item.props).filter(s=>s!=='value').reduce((obj, key) => {
-                            obj[key] = item.props[key];
-                            return obj;
-                        }, {})
-                        : null;
+            const count = expand ? controls_array.length : 1;
+            
+            // 先渲染行，再渲染列
+            children = controls_array.map(
+                (item_array, index_array) =>
+                    <Row gutter={{ md: 8, lg: 24, xl: 48 }}  style={{ display: index_array < count ? 'block' : 'none' }}>
+                        {item_array.map(
+                            (item, index) => {
+                                const CustomTag = Components[`${item.type}`];
+                                const CustomLabel = item.label ? item.label : item.id;
+                                const options = item.option 
+                                    ? item.option.sort(
+                                        (opt1, opt2) => (opt1 < opt2) ? -1 : 1).map(
+                                            c => <Option value={ c }>{ c }</Option>) 
+                                    : null;
 
-                    // 根据类型初始化
-                    let value = null;
-                    if (item.props) {
-                        const propsAll = Object.keys(item.props);
-                        if (item.type === 'RangePicker') {
-                            props['showTime'] = { defaultValue: [moment('00:00:00', 'HH:mm:ss'), moment('23:59:59', 'HH:mm:ss')] }
-                            if (propsAll.includes('value') && propsAll.includes('format')) {
-                                value = [moment(item.props.value[0], item.props.format), moment(item.props.value[1], item.props.format)];
-                            };
-                        } else if (['DatePicker', 'MonthPicker', 'WeekPicker'].includes(item.type)) {
-                            props['showTime'] = { defaultValue: moment('00:00:00', 'HH:mm:ss') }
-                            if (propsAll.includes('value') && propsAll.includes('format')) {
-                                value = moment(item.props.value, item.props.format);
-                            };
-                        } else {
-                            if (propsAll.includes('value')) {
-                                value = item.props.value;
+                                const props = item.props
+                                    ? Object.keys(item.props).filter(s=>s!=='value').reduce((obj, key) => {
+                                        obj[key] = item.props[key];
+                                        return obj;
+                                    }, {})
+                                    : null;
+
+                                // 根据类型初始化
+                                let value = null;
+                                if (item.props) {
+                                    const propsAll = Object.keys(item.props);
+                                    if (item.type === 'RangePicker') {
+                                        props['showTime'] = { defaultValue: [moment('00:00:00', 'HH:mm:ss'), moment('23:59:59', 'HH:mm:ss')] }
+                                        if (propsAll.includes('value') && propsAll.includes('format')) {
+                                            value = [moment(item.props.value[0], item.props.format), moment(item.props.value[1], item.props.format)];
+                                        };
+                                    } else if (['DatePicker', 'MonthPicker', 'WeekPicker'].includes(item.type)) {
+                                        props['showTime'] = { defaultValue: moment('00:00:00', 'HH:mm:ss') }
+                                        if (propsAll.includes('value') && propsAll.includes('format')) {
+                                            value = moment(item.props.value, item.props.format);
+                                        };
+                                    } else {
+                                        if (propsAll.includes('value')) {
+                                            value = item.props.value;
+                                        }
+                                    }
+                                };
+
+                                // 应该可以合并
+                                return <Col md={8} sm={24} key={index}>
+                                    { value
+                                    ? <FormItem label={`${CustomLabel}`} style={{ marginBottom: 12 }}>
+                                        {getFieldDecorator(`${item.id}`, {initialValue: value})(
+                                            <CustomTag
+                                                {...props}
+                                                // onChange={(...args) => { this.onSearchChange(item, ...args); }}
+                                            >
+                                                {options}
+                                            </CustomTag>
+                                        )}
+                                    </FormItem>
+                                    : <FormItem label={`${CustomLabel}`} style={{ marginBottom: 12 }}>
+                                    {getFieldDecorator(`${item.id}`, {})(
+                                        <CustomTag
+                                            {...props}
+                                            // onChange={(...args) => { this.onSearchChange(item, ...args); }}
+                                        >
+                                            {options}
+                                        </CustomTag>
+                                    )}
+                                    </FormItem>
+                                    }
+                                </Col>
                             }
-                        }
-                    };
-
-                    // 应该可以合并
-                    return <Col span={8} key={index} style={{ display: index < count ? 'block' : 'none' }}>
-                        { value
-                        ? <FormItem label={`${CustomLabel}`}>
-                            {getFieldDecorator(`${item.id}`, {initialValue: value})(
-                                <CustomTag
-                                    {...props}
-                                    // onChange={(...args) => { this.onSearchChange(item, ...args); }}
-                                >
-                                    {options}
-                                </CustomTag>
-                            )}
-                        </FormItem>
-                        : <FormItem label={`${CustomLabel}`}>
-                        {getFieldDecorator(`${item.id}`, {})(
-                            <CustomTag
-                                {...props}
-                                // onChange={(...args) => { this.onSearchChange(item, ...args); }}
-                            >
-                                {options}
-                            </CustomTag>
                         )}
-                        </FormItem>
-                        }
-                    </Col>
-                }
+                    </Row>
             )
         }
         return children;
@@ -346,20 +358,19 @@ class ApiTableRaw extends React.Component {
             <LocaleProvider locale={zhCN}>
                 <div>
                     <Form
-                        className="ant-advanced-search-form"
                         layout='vertical'
                         onSubmit={this.onSearchSubmit}
                     >
-                        <Row gutter={24}>{this.getControls()}</Row>
-                        <FormItem>
-                            {getFieldDecorator('name', {
-                                initialValue: externalApiParam,
-                            })(
-                                <Input type="hidden" />
-                            )}
-                        </FormItem>
+                        {this.getControls()}
                         <Row>
-                            <Col span={24} style={{ textAlign: 'right' }}>
+                            <Col sm={24} style={{ textAlign: 'right' }}>
+                                <FormItem style={{ marginBottom: 0 }}>
+                                    {getFieldDecorator('name', {
+                                        initialValue: externalApiParam,
+                                    })(
+                                        <Input type="hidden" />
+                                    )}
+                                </FormItem>
                                 <Button type="primary" icon="search" htmlType="submit" disabled={loading}>
                                     查询
                                 </Button>
