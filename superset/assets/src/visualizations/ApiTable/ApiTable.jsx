@@ -137,13 +137,16 @@ class ApiTableRaw extends React.Component {
 
   getData(transferUrl, params, isUpdateControls = false) {
     this.setState({ loading: true });
-    console.log(transferUrl);
+    // console.log(transferUrl);
     let csrfToken = document.getElementById('csrf_token');
     csrfToken = csrfToken ? csrfToken.value : '';
 
-    // moment类型转化为字符串
     for (const [key, value] of Object.entries(params)) {
-      if (moment.isMoment(value)) {
+      // 删除undefined, null, 空值, 空数组
+      if (typeof value === 'undefined' || !value || value == false) {
+        delete params[key];
+        // moment类型转化为字符串
+      } else if (moment.isMoment(value)) {
         params[key] = value.format('YYYY-MM-DD HH:mm:ss');
       } else if (value instanceof Array) {
         if (moment.isMoment(value[0])) {
