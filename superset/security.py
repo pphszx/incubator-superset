@@ -2,9 +2,10 @@
 """A set of constants and methods to manage permissions and security"""
 import logging
 
-from flask import g
+from flask import g, request, session, url_for
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.manager import SecurityManager
+from flask_login import current_user
 from sqlalchemy import or_
 
 from superset import sql_parse
@@ -94,6 +95,14 @@ class SupersetSecurityManager(SecurityManager):
     def all_datasource_access(self, user=None):
         return self.can_access(
             'all_datasource_access', 'all_datasource_access', user=user)
+
+    def has_access(self, permission_name, view_name):
+        if not current_user.is_authenticated:
+            login_path = url_for(
+                self.appbuilder.sm.auth_view.__class__.__name__ + '.login')
+            if not ('target_url' in session) and request.path != login_path:
+                session['target_url'] = request.url
+        return super(SupersetSecurityManager, self).has_access(permission_name, view_name)
 
     def database_access(self, database, user=None):
         return (

@@ -42,6 +42,7 @@ from superset.models.user_attributes import UserAttribute
 from superset.sql_parse import SupersetQuery
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
+from superset.utils.decorators import redirect_to_target_url
 from .base import (
     api, BaseSupersetView,
     check_ownership,
@@ -2743,6 +2744,7 @@ class Superset(BaseSupersetView):
             error_msg=get_error_msg(),
         ), 500
 
+    @redirect_to_target_url
     @expose('/welcome')
     def welcome(self):
         """Personalized welcome page"""
