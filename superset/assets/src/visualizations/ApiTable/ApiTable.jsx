@@ -11,6 +11,7 @@ import {
   Table,
   Select,
   Button,
+  Switch,
 } from 'antd';
 // 由于 antd 组件的默认文案是英文，所以需要修改为中文
 import zhCN from 'antd/lib/locale-provider/zh_CN';
@@ -23,6 +24,7 @@ import './ApiTable.css';
 
 moment.locale('zh-cn');
 
+const ButtonGroup = Button.Group;
 const FormItem = Form.Item;
 const { Option } = Select;
 
@@ -48,6 +50,7 @@ class ApiTableRaw extends React.Component {
       searchText: '',
     };
 
+    this.getRequest = this.getRequest.bind(this);
     this.getData = this.getData.bind(this);
     this.setDataSource = this.setDataSource.bind(this);
     this.onSearchSubmit = this.onSearchSubmit.bind(this);
@@ -72,6 +75,14 @@ class ApiTableRaw extends React.Component {
   setDataSource(data, isUpdateControls) {
     const { dataSource, columns, controls } = data;
     if (isUpdateControls) {
+      //更新 URL Param
+      let requests = this.getRequest();
+      for (let i = 0; i < controls.length; i++) {
+        if (controls[i].id in requests) {
+          controls[i].props.value = requests[controls[i].id];
+        }
+      }
+
       this.setState({
         controls,
         dataSource,
@@ -111,7 +122,9 @@ class ApiTableRaw extends React.Component {
 
     /* Generate Workbook */
     const wb = xlsx.utils.book_new();
-    const ws = xlsx.utils.json_to_sheet(dataSource, { header: columns });
+    const ws = xlsx.utils.json_to_sheet(dataSource, {
+      header: columns.map(col => col.title),
+    });
     xlsx.utils.book_append_sheet(wb, ws, 'Sheet1');
 
     // const elt = this.antdTable.getElementsByTagName('table')[0]
@@ -135,11 +148,30 @@ class ApiTableRaw extends React.Component {
     this.setState({ searchText: '' });
   }
 
+  getRequest() {
+    const url = window.location.search; //获取url中"?"符后的字串
+    let theRequest = {};
+
+    if (url.indexOf('?') !== -1) {
+      let str = url.substr(1);
+      let strs = str.split('&');
+      for (let i = 0; i < strs.length; i++) {
+        theRequest[decodeURI(strs[i].split('=')[0])] = decodeURI(
+          strs[i].split('=')[1]
+        );
+      }
+    }
+    return theRequest;
+  }
+
   getData(transferUrl, params, isUpdateControls = false) {
     this.setState({ loading: true });
     // console.log(transferUrl);
     let csrfToken = document.getElementById('csrf_token');
     csrfToken = csrfToken ? csrfToken.value : '';
+
+    // 更新 URL Param
+    Object.assign(params, this.getRequest());
 
     for (const [key, value] of Object.entries(params)) {
       // 删除undefined, null, 空值, 空数组
@@ -354,16 +386,26 @@ class ApiTableRaw extends React.Component {
     if (columns) {
       const colWidth =
         parseFloat(((1 / columns.length) * 100).toPrecision(12)) + '%';
-      antdCol = columns.map(col => {
-        const colObj = {};
-        colObj['title'] = col;
-        colObj['dataIndex'] = col;
-        colObj['key'] = col;
-        colObj['width'] = colWidth;
-        colObj['sorter'] = (opt1, opt2) => (opt1[col] < opt2[col] ? -1 : 1);
-        Object.assign(colObj, this.getColumnSearchProps(col));
-        return colObj;
-      });
+
+      for (let col of columns) {
+        col['width'] = colWidth;
+        if ('render' in col && 'action' in col['render']) {
+          const url = col.render.action;
+          col['render'] = (text, record, index) => (
+            <span>
+              <a
+                href={`${url + text}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >{`${text}`}</a>
+            </span>
+          );
+        }
+        col['sorter'] = (opt1, opt2) => (opt1 < opt2 ? -1 : 1);
+        Object.assign(col, this.getColumnSearchProps(col.dataIndex));
+      }
+
+      antdCol = columns;
     }
     return antdCol;
   }
@@ -398,36 +440,37 @@ class ApiTableRaw extends React.Component {
                     initialValue: externalApiParam,
                   })(<Input type="hidden" />)}
                 </FormItem>
-                <Button
-                  type="primary"
-                  icon="search"
-                  htmlType="submit"
-                  disabled={loading}
-                >
-                  查询
-                </Button>
-                <Button
-                  icon="delete"
-                  style={{ marginLeft: 8 }}
-                  onClick={this.OnReset}
-                >
-                  重置
-                </Button>
-                <Button
-                  icon="download"
-                  style={{ marginLeft: 8 }}
-                  disabled={loading}
-                  onClick={this.OnDownload}
-                >
-                  下载
-                </Button>
-                <a
-                  style={{ marginLeft: 10, fontSize: 14 }}
-                  onClick={this.OnToggle}
-                >
+                <FormItem style={{ marginBottom: 0, marginRight: 10 }}>
+                  {getFieldDecorator('isForce', {
+                    initialValue: false,
+                  })(
+                    <Switch checkedChildren="强刷" unCheckedChildren="缓存" />
+                  )}
+                </FormItem>
+                <ButtonGroup>
+                  <Button
+                    type="primary"
+                    icon="search"
+                    htmlType="submit"
+                    disabled={loading}
+                  >
+                    查询
+                  </Button>
+                  <Button icon="tool" onClick={this.OnReset}>
+                    重置
+                  </Button>
+                  <Button
+                    icon="cloud-download"
+                    disabled={loading}
+                    onClick={this.OnDownload}
+                  >
+                    下载
+                  </Button>
+                </ButtonGroup>
+                <Button type="link" onClick={this.OnToggle}>
                   {this.state.expand ? '收起' : '展开'}
-                  <Icon type={this.state.expand ? 'up' : 'down'} />
-                </a>
+                  <Icon type={this.state.expand ? 'caret-up' : 'caret-down'} />
+                </Button>
               </Col>
             </Row>
           </Form>
