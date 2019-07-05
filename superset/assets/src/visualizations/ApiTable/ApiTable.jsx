@@ -390,11 +390,22 @@ class ApiTableRaw extends React.Component {
       for (let col of columns) {
         col['width'] = colWidth;
         if ('render' in col && 'action' in col['render']) {
+          // 自定义format函数
+          if (!String.format) {
+            String.format = function(format) {
+              var args = Array.prototype.slice.call(arguments, 1);
+              return format.replace(/{(\d+)}/g, function(match, number) {
+                return typeof args[number] != 'undefined'
+                  ? args[number]
+                  : match;
+              });
+            };
+          }
           const url = col.render.action;
           col['render'] = (text, record, index) => (
             <span>
               <a
-                href={`${url + text}`}
+                href={String.format(url, text)} // 暂只支持单个变量
                 target="_blank"
                 rel="noopener noreferrer"
               >{`${text}`}</a>
