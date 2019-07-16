@@ -75,11 +75,32 @@ class ApiTableRaw extends React.Component {
   setDataSource(data, isUpdateControls) {
     const { dataSource, columns, controls } = data;
     if (isUpdateControls) {
-      //更新 URL Param
+      // 更新 URL Param
       let requests = this.getRequest();
       for (let i = 0; i < controls.length; i++) {
-        if (controls[i].id in requests) {
-          controls[i].props.value = requests[controls[i].id];
+        if (
+          // 使用id或者label属性均可
+          controls[i].id in requests ||
+          (controls[i].label && controls[i].label in requests)
+        ) {
+          if (controls[i].type === 'Select') {
+            // 目前只处理选择器
+            if (
+              controls[i].props.mode &&
+              ['multiple', 'tags'].includes(controls[i].props.mode)
+            ) {
+              controls[i].props.value = [
+                controls[i].id in requests
+                  ? requests[controls[i].id]
+                  : requests[controls[i].label],
+              ];
+            } else {
+              controls[i].props.value =
+                controls[i].id in requests
+                  ? requests[controls[i].id]
+                  : requests[controls[i].label];
+            }
+          }
         }
       }
 
@@ -149,7 +170,7 @@ class ApiTableRaw extends React.Component {
   }
 
   getRequest() {
-    const url = window.location.search; //获取url中"?"符后的字串
+    const url = window.location.search; // 获取url中"?"符后的字串
     let theRequest = {};
 
     if (url.indexOf('?') !== -1) {

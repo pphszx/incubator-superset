@@ -1215,10 +1215,10 @@ ansistyles@~0.1.3:
   version "0.1.3"
   resolved "https://registry.yarnpkg.com/ansistyles/-/ansistyles-0.1.3.tgz#5de60415bda071bb37127854c864f41b23254539"
 
-antd@^3.20.1:
-  version "3.20.1"
-  resolved "https://registry.yarnpkg.com/antd/-/antd-3.20.1.tgz#b6274517bab290754a10907a87a23b2fd8e39417"
-  integrity sha512-4F1XvFUj6V6b2Aki65pkKd/WlwfeNeE2HftJG0jBB6D5QBWCHU/Csv0cVph8n9UCcGNOAErNpi2dA26GmjjRFw==
+antd@^3.20.3:
+  version "3.20.3"
+  resolved "https://registry.yarnpkg.com/antd/-/antd-3.20.3.tgz#a9a8acad523933f5a0daeb5931d49b9aa1ce9e29"
+  integrity sha512-LT8bhsgtGMzEWO6C8rZu9wiRU/ialJbHOxfkgBnA+v5cmdNwGm0NxvKO1uGalg7DULO86OjbzhMOKYbJYM6EqQ==
   dependencies:
     "@ant-design/create-react-context" "^0.2.4"
     "@ant-design/icons" "~2.1.1"
