@@ -75,9 +75,21 @@ class ApiTableRaw extends React.Component {
   setDataSource(data, isUpdateControls) {
     const { dataSource, columns, controls } = data;
     if (isUpdateControls) {
-      // 更新 URL Param
+      const { externalApiService, externalApiParam } = this.props;
+      const presetParam = { name: externalApiParam, isForce: false };
+      let isPreset = false;
       let requests = this.getRequest();
+
       for (let i = 0; i < controls.length; i++) {
+        // 收集默认值=======
+        if ('value' in controls[i].props) {
+          isPreset = true;
+          Object.assign(presetParam, {
+            [controls[i].id]: controls[i].props.value,
+          });
+        }
+
+        // 根据URL参数和控件类型设置控件值=======
         if (
           // 使用id或者label属性均可
           controls[i].id in requests ||
@@ -110,6 +122,12 @@ class ApiTableRaw extends React.Component {
         columns,
         loading: false,
       });
+
+      // 存在默认值则进行二次查询，且不更新控件
+      if (isPreset) {
+        Object.assign(presetParam, requests);
+        this.getData(externalApiService, presetParam);
+      }
     } else {
       this.setState({
         dataSource,
@@ -187,7 +205,7 @@ class ApiTableRaw extends React.Component {
 
   getData(transferUrl, params, isUpdateControls = false) {
     this.setState({ loading: true });
-    // console.log(transferUrl);
+    // console.log(transferUrl, params, isUpdateControls);
     let csrfToken = document.getElementById('csrf_token');
     csrfToken = csrfToken ? csrfToken.value : '';
 
