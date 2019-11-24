@@ -23,7 +23,7 @@ import time
 import boto3
 from flask import g
 from flask_babel import lazy_gettext as _
-import pandas
+import pandas as pd
 from past.builtins import basestring
 import sqlalchemy as sqla
 from sqlalchemy import Column, select
@@ -33,11 +33,11 @@ from sqlalchemy.sql import quoted_name, text
 from sqlalchemy.sql.expression import TextAsFrom
 import sqlparse
 from tableschema import Table
-from werkzeug.utils import secure_filename
 
 from superset import app, conf, db, sql_parse
 from superset.exceptions import SupersetTemplateException
 from superset.utils import core as utils
+from superset.utils.file_uploads import secure_filename
 
 QueryStatus = utils.QueryStatus
 config = app.config
@@ -98,6 +98,13 @@ class BaseEngineSpec(object):
     allows_subquery = True
     force_column_alias_quotes = False
     arraysize = None
+
+    @classmethod
+    def get_engine(cls, database, schema=None):
+        user_name = utils.get_username()
+        return database.get_sqla_engine(
+            schema=schema, nullpool=True, user_name=user_name
+        )
 
     @classmethod
     def get_time_grains(cls):
@@ -164,64 +171,110 @@ class BaseEngineSpec(object):
         return parsed_query.get_query_with_new_limit(limit)
 
     @staticmethod
-    def csv_to_df(**kwargs):
-        kwargs['filepath_or_buffer'] = \
-            config['UPLOAD_FOLDER'] + kwargs['filepath_or_buffer']
-        kwargs['encoding'] = 'utf-8'
-        kwargs['iterator'] = True
-        chunks = pandas.read_csv(**kwargs)
-        df = pandas.DataFrame()
-        df = pandas.concat(chunk for chunk in chunks)
+    def excel_to_df(**kwargs) -> pd.DataFrame:
+        """ 自定义函数 Read excel into Pandas DataFrame
+        :param kwargs: params to be passed to DataFrame.read_excel
+        :return: Pandas DataFrame containing data from excel
+        """
+        kwargs["io"] = (
+            config["UPLOAD_FOLDER"] + kwargs["io"]
+        )
+        kwargs["encoding"] = "utf-8"
+        df = pd.read_excel(**kwargs)
         return df
 
     @staticmethod
-    def df_to_db(df, table, **kwargs):
-        df.to_sql(**kwargs)
-        table.user_id = g.user.id
-        table.schema = kwargs['schema']
-        table.fetch_metadata()
-        db.session.add(table)
-        db.session.commit()
+    def csv_to_df(**kwargs) -> pd.DataFrame:
+        """ Read csv into Pandas DataFrame
+        :param kwargs: params to be passed to DataFrame.read_csv
+        :return: Pandas DataFrame containing data from csv
+        """
+        kwargs["filepath_or_buffer"] = (
+            config["UPLOAD_FOLDER"] + kwargs["filepath_or_buffer"]
+        )
+        kwargs["encoding"] = "utf-8"
+        kwargs["iterator"] = True
+        chunks = pd.read_csv(**kwargs)
+        df = pd.concat(chunk for chunk in chunks)
+        return df
 
-    @staticmethod
-    def create_table_from_csv(form, table):
-        def _allowed_file(filename):
+    @classmethod
+    def df_to_sql(cls, df: pd.DataFrame, **kwargs):  # pylint: disable=invalid-name
+        """ Upload data from a Pandas DataFrame to a database. For
+        regular engines this calls the DataFrame.to_sql() method. Can be
+        overridden for engines that don't work well with to_sql(), e.g.
+        BigQuery.
+        :param df: Dataframe with data to be uploaded
+        :param kwargs: kwargs to be passed to to_sql() method
+        """
+        df.to_sql(**kwargs)
+
+    @classmethod
+    def create_table_from_csv(cls, form, database) -> None:
+        """
+        Create table from contents of a csv. Note: this method does not create
+        metadata for the table.
+
+        :param form: Parameters defining how to process data
+        :param database: Database model object for the target database
+        """
+
+        def _allowed_file(filename: str) -> bool:
             # Only allow specific file extensions as specified in the config
-            extension = os.path.splitext(filename)[1]
-            return extension and extension[1:] in config['ALLOWED_EXTENSIONS']
+            extension = os.path.splitext(filename)[1].lower()
+            return (
+                extension is not None and extension[1:] in config["ALLOWED_EXTENSIONS"]
+            )
 
         filename = secure_filename(form.csv_file.data.filename)
         if not _allowed_file(filename):
-            raise Exception('Invalid file type selected')
-        kwargs = {
-            'filepath_or_buffer': filename,
-            'sep': form.sep.data,
-            'header': form.header.data if form.header.data else 0,
-            'index_col': form.index_col.data,
-            'mangle_dupe_cols': form.mangle_dupe_cols.data,
-            'skipinitialspace': form.skipinitialspace.data,
-            'skiprows': form.skiprows.data,
-            'nrows': form.nrows.data,
-            'skip_blank_lines': form.skip_blank_lines.data,
-            'parse_dates': form.parse_dates.data,
-            'infer_datetime_format': form.infer_datetime_format.data,
-            'chunksize': 10000,
-        }
-        df = BaseEngineSpec.csv_to_df(**kwargs)
+            raise Exception("Invalid file type selected")
 
-        df_to_db_kwargs = {
-            'table': table,
-            'df': df,
-            'name': form.name.data,
-            'con': create_engine(form.con.data.sqlalchemy_uri_decrypted, echo=False),
-            'schema': form.schema.data,
-            'if_exists': form.if_exists.data,
-            'index': form.index.data,
-            'index_label': form.index_label.data,
-            'chunksize': 10000,
-        }
+        extension = os.path.splitext(filename)[1].lower()[1:]
+        if extension in ('csv', 'tsv'):
+            csv_to_df_kwargs = {
+                "filepath_or_buffer": filename,
+                "sep": form.sep.data,
+                "header": form.header.data if form.header.data else 0,
+                "index_col": form.index_col.data,
+                "mangle_dupe_cols": form.mangle_dupe_cols.data,
+                "skipinitialspace": form.skipinitialspace.data,
+                "skiprows": form.skiprows.data,
+                "nrows": form.nrows.data,
+                "skip_blank_lines": form.skip_blank_lines.data,
+                "parse_dates": form.parse_dates.data,
+                "infer_datetime_format": form.infer_datetime_format.data,
+                "chunksize": 10000,
+            }
+            df = cls.csv_to_df(**csv_to_df_kwargs)
+        elif extension in ('xls', 'xlsx'):
+            excel_to_df_kwargs = {
+                "io": filename,
+                "header": form.header.data if form.header.data else 0,
+                "index_col": form.index_col.data,
+                "mangle_dupe_cols": form.mangle_dupe_cols.data,
+                "skiprows": form.skiprows.data,
+                "nrows": form.nrows.data,
+                "parse_dates": form.parse_dates.data,
+                "infer_datetime_format": form.infer_datetime_format.data,
+            }
+            df = cls.excel_to_df(**excel_to_df_kwargs)
+        else:
+            raise Exception("Invalid file type selected")
 
-        BaseEngineSpec.df_to_db(**df_to_db_kwargs)
+        engine = cls.get_engine(database)
+
+        df_to_sql_kwargs = {
+            "df": df,
+            "name": form.name.data,
+            "con": engine,
+            "schema": form.schema.data,
+            "if_exists": form.if_exists.data,
+            "index": form.index.data,
+            "index_label": form.index_label.data,
+            "chunksize": 10000,
+        }
+        cls.df_to_sql(**df_to_sql_kwargs)
 
     @classmethod
     def convert_dttm(cls, target_type, dttm):

@@ -25,7 +25,6 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.exc import IntegrityError
 from unidecode import unidecode
 from werkzeug.routing import BaseConverter
-from werkzeug.utils import secure_filename
 
 from superset import (
     app, appbuilder, cache, db, results_backend,
@@ -43,6 +42,7 @@ from superset.sql_parse import SupersetQuery
 from superset.utils import core as utils
 from superset.utils import dashboard_import_export
 from superset.utils.decorators import redirect_to_target_url
+from superset.utils.file_uploads import secure_filename
 from .base import (
     api, BaseSupersetView,
     check_ownership,
@@ -342,9 +342,12 @@ class CsvToDatabaseView(SimpleFormView):
         schema_name = form.schema.data or ''
 
         if not self.is_schema_allowed(database, schema_name):
-            message = _('Database "{0}" Schema "{1}" is not allowed for csv uploads. '
-                        'Please contact Superset Admin'.format(database.database_name,
-                                                               schema_name))
+            message = _(
+                'Database "%(database_name)s" schema "%(schema_name)s" '
+                "is not allowed for csv uploads. Please contact your Superset Admin.",
+                database_name=database.database_name,
+                schema_name=schema_name,
+            )
             flash(message, 'danger')
             return redirect('/csvtodatabaseview/form')
 
@@ -355,30 +358,62 @@ class CsvToDatabaseView(SimpleFormView):
         try:
             utils.ensure_path_exists(config['UPLOAD_FOLDER'])
             csv_file.save(path)
-            table = SqlaTable(table_name=form.name.data)
-            table.database = form.data.get('con')
-            table.database_id = table.database.id
-            table.database.db_engine_spec.create_table_from_csv(form, table)
+            table_name = form.name.data
+
+            con = form.data.get("con")
+            database = (
+                db.session.query(models.Database).filter_by(id=con.data.get("id")).one()
+            )
+            database.db_engine_spec.create_table_from_csv(form, database)
+
+            table = (
+                db.session.query(SqlaTable)
+                .filter_by(
+                    table_name=table_name,
+                    schema=form.schema.data,
+                    database_id=database.id,
+                )
+                .one_or_none()
+            )
+            if table:
+                table.fetch_metadata()
+            if not table:
+                table = SqlaTable(table_name=table_name)
+                table.database = database
+                table.database_id = database.id
+                table.user_id = g.user.id
+                table.schema = form.schema.data
+                table.fetch_metadata()
+                db.session.add(table)
+            db.session.commit()
         except Exception as e:
+            db.session.rollback()
             try:
                 os.remove(path)
             except OSError:
                 pass
-            message = 'Table name {} already exists. Please pick another'.format(
-                form.name.data) if isinstance(e, IntegrityError) else e
-            flash(
-                message,
-                'danger')
+            message = _(
+                'Unable to upload CSV file "%(filename)s" to table '
+                '"%(table_name)s" in database "%(db_name)s". '
+                "Error message: %(error_msg)s",
+                filename=csv_filename,
+                table_name=form.name.data,
+                db_name=database.database_name,
+                error_msg=str(e),
+            )
+
+            flash(message, "danger")
             stats_logger.incr('failed_csv_upload')
             return redirect('/csvtodatabaseview/form')
 
-        os.remove(path)
         # Go back to welcome page / splash screen
-        db_name = table.database.database_name
-        message = _('CSV file "{0}" uploaded to table "{1}" in '
-                    'database "{2}"'.format(csv_filename,
-                                            form.name.data,
-                                            db_name))
+        message = _(
+            'CSV file "%(csv_filename)s" uploaded to table "%(table_name)s" in '
+            'database "%(db_name)s"',
+            csv_filename=csv_filename,
+            table_name=form.name.data,
+            db_name=table.database.database_name,
+        )
         flash(message, 'info')
         stats_logger.incr('successful_csv_upload')
         return redirect('/tablemodelview/list/')
