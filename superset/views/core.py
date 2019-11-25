@@ -351,6 +351,9 @@ class CsvToDatabaseView(SimpleFormView):
             flash(message, 'danger')
             return redirect('/csvtodatabaseview/form')
 
+        # 增加表名前缀，防止误删其他表
+        form.name.data = "upload_" + form.name.data
+
         csv_file = form.csv_file.data
         form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
         csv_filename = form.csv_file.data.filename
