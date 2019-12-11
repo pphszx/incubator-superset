@@ -192,6 +192,13 @@ class CsvToDatabaseForm(DynamicForm):
             "Skip blank lines rather than interpreting them " "as NaN values."
         ),
     )
+    parse_strings = CommaSeparatedListField(
+        _("Parse Strings"),
+        description=_(
+            "A comma separated list of columns that should be " "parsed as strings."
+        ),
+        filters=[filter_not_empty_values],
+    )
     parse_dates = CommaSeparatedListField(
         _("Parse Dates"),
         description=_(

@@ -181,6 +181,7 @@ class BaseEngineSpec(object):
         )
         kwargs["encoding"] = "utf-8"
         df = pd.read_excel(**kwargs)
+        df['dt'] = pd.datetime.now() # 上传日期
         return df
 
     @staticmethod
@@ -196,6 +197,7 @@ class BaseEngineSpec(object):
         kwargs["iterator"] = True
         chunks = pd.read_csv(**kwargs)
         df = pd.concat(chunk for chunk in chunks)
+        df['dt'] = pd.datetime.now() # 上传日期
         return df
 
     @classmethod
@@ -242,6 +244,7 @@ class BaseEngineSpec(object):
                 "skiprows": form.skiprows.data,
                 "nrows": form.nrows.data,
                 "skip_blank_lines": form.skip_blank_lines.data,
+                "dtype": form.parse_strings.data,
                 "parse_dates": form.parse_dates.data,
                 "infer_datetime_format": form.infer_datetime_format.data,
                 "chunksize": 10000,
@@ -255,6 +258,7 @@ class BaseEngineSpec(object):
                 "mangle_dupe_cols": form.mangle_dupe_cols.data,
                 "skiprows": form.skiprows.data,
                 "nrows": form.nrows.data,
+                "dtype": form.parse_strings.data,
                 "parse_dates": form.parse_dates.data,
                 "infer_datetime_format": form.infer_datetime_format.data,
             }

@@ -354,6 +354,10 @@ class CsvToDatabaseView(SimpleFormView):
         # 增加表名前缀，防止误删其他表
         form.name.data = "upload_" + form.name.data
 
+        # 指定字符串列
+        if form.parse_strings.data:
+            form.parse_strings.data = { d:str for d in form.parse_strings.data }
+
         csv_file = form.csv_file.data
         form.csv_file.data.filename = secure_filename(form.csv_file.data.filename)
         csv_filename = form.csv_file.data.filename
