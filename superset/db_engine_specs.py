@@ -181,6 +181,7 @@ class BaseEngineSpec(object):
         )
         kwargs["encoding"] = "utf-8"
         df = pd.read_excel(**kwargs)
+        df.columns = [x.strip() for x in df.columns]    # 标题去空格
         df['dt_upload'] = pd.datetime.now() # 上传日期
         return df
 
@@ -197,6 +198,7 @@ class BaseEngineSpec(object):
         kwargs["iterator"] = True
         chunks = pd.read_csv(**kwargs)
         df = pd.concat(chunk for chunk in chunks)
+        df.columns = [x.strip() for x in df.columns]    # 标题去空格
         df['dt_upload'] = pd.datetime.now() # 上传日期
         return df
 
