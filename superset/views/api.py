@@ -4,6 +4,7 @@ import json
 from flask import g, jsonify, request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
+from flask_login import current_user
 import grpc
 from nameko.standalone.rpc import ClusterRpcProxy
 import requests
@@ -47,6 +48,8 @@ class Sachima(BaseSupersetView):
         RESTFul API
         """
         req_params = request.get_json()
+        req_params['user'] = ' '.join([current_user.first_name, current_user.last_name])
+        req_params['email'] = current_user.email
         res = requests.post(
             conf.get('API_URL_CONFIG').get('RESTFUL'),
             json=req_params,
@@ -65,6 +68,8 @@ class Sachima(BaseSupersetView):
         Nameko RPC
         """
         req_params = request.get_json()
+        req_params['user'] = ' '.join([current_user.first_name, current_user.last_name])
+        req_params['email'] = current_user.email
         CONFIG = {'AMQP_URI': conf.get('API_URL_CONFIG').get('RPC')}
         with ClusterRpcProxy(CONFIG) as rpc:
             res = rpc.data.get_report(req_params)
@@ -81,6 +86,8 @@ class Sachima(BaseSupersetView):
         # used in circumstances in which the with statement does not fit the needs
         # of the code.
         req_params = request.get_json()
+        req_params['user'] = ' '.join([current_user.first_name, current_user.last_name])
+        req_params['email'] = current_user.email
         with grpc.insecure_channel(conf.get('API_URL_CONFIG').get('GRPC')) as channel:
             stub = sachima_pb2_grpc.ReporterStub(channel)
             response = stub.RunReport(
@@ -99,6 +106,8 @@ class Sachima(BaseSupersetView):
         """
         if request.method == 'POST':
             req_params = request.get_json()
+            req_params['user'] = ' '.join([current_user.first_name, current_user.last_name])
+            req_params['email'] = current_user.email
             params = {
                 'external_api_service': req_params.get('api', 'rpc'),
                 'external_api_param': req_params.get('params', ''),
