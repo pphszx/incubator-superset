@@ -1,10 +1,9 @@
 import React from 'react';
 import {
-  LocaleProvider,
+  ConfigProvider,
   Form,
   Row,
   Col,
-  Icon,
   Input,
   DatePicker,
   Alert,
@@ -13,8 +12,15 @@ import {
   Button,
   Switch,
 } from 'antd';
+import {
+  SearchOutlined,
+  CloudDownloadOutlined,
+  ToolOutlined,
+  CaretUpOutlined,
+  CaretDownOutlined,
+} from '@ant-design/icons';
 // 由于 antd 组件的默认文案是英文，所以需要修改为中文
-import zhCN from 'antd/lib/locale-provider/zh_CN';
+import zhCN from 'antd/es/locale/zh_CN';
 import moment from 'moment';
 import 'moment/locale/zh-cn';
 
@@ -36,7 +42,9 @@ const Components = {
   Select,
 };
 
-class ApiTableRaw extends React.Component {
+class ApiTable extends React.Component {
+  // https://ant.design/components/form-cn/#components-form-demo-control-ref
+  
   constructor(props) {
     super(props);
     this.state = {
@@ -49,6 +57,8 @@ class ApiTableRaw extends React.Component {
       expand: true,
       searchText: '',
     };
+    
+    this.formRef = React.createRef();
 
     this.getRequest = this.getRequest.bind(this);
     this.getData = this.getData.bind(this);
@@ -66,12 +76,13 @@ class ApiTableRaw extends React.Component {
 
   componentDidMount() {
     const { externalApiService } = this.props;
-    this.props.form.validateFields((err, values) => {
+    this.formRef.current.validateFields().then((values) => {
       // console.log('Form值: ', values);
       this.getData(externalApiService, values, true);
     });
   }
 
+  // TODO:考虑二次查询的逻辑
   setDataSource(data, isUpdateControls) {
     const { dataSource, columns, controls } = data;
     if (isUpdateControls) {
@@ -138,17 +149,14 @@ class ApiTableRaw extends React.Component {
     console.log(data);
   }
 
-  onSearchSubmit(event) {
-    event.preventDefault();
+  onSearchSubmit(values) {
     const { externalApiService } = this.props;
-    this.props.form.validateFields((err, values) => {
-      // console.log('Form值: ', values);
-      this.getData(externalApiService, values);
-    });
+    // console.log('Form值: ', values);
+    this.getData(externalApiService, values);
   }
 
   OnReset() {
-    this.props.form.resetFields();
+    this.formRef.current.resetFields();
   }
 
   OnToggle() {
@@ -162,7 +170,7 @@ class ApiTableRaw extends React.Component {
     /* Generate Workbook */
     const wb = xlsx.utils.book_new();
     const ws = xlsx.utils.json_to_sheet(dataSource, {
-      header: columns.map(col => col.title),
+      header: columns.map((col) => col.title),
     });
     xlsx.utils.book_append_sheet(wb, ws, 'Sheet1');
 
@@ -212,16 +220,13 @@ class ApiTableRaw extends React.Component {
     // 更新 URL Param
     Object.assign(params, this.getRequest());
 
+    // moment类型转化为字符串
     for (const [key, value] of Object.entries(params)) {
-      // 删除undefined, null, 空值, 空数组
-      if (typeof value === 'undefined' || !value || value == false) {
-        delete params[key];
-        // moment类型转化为字符串
-      } else if (moment.isMoment(value)) {
+      if (moment.isMoment(value)) {
         params[key] = value.format('YYYY-MM-DD HH:mm:ss');
       } else if (value instanceof Array) {
         if (moment.isMoment(value[0])) {
-          params[key] = value.map(item => item.format('YYYY-MM-DD HH:mm:ss'));
+          params[key] = value.map((item) => item.format('YYYY-MM-DD HH:mm:ss'));
         }
       }
     }
@@ -241,9 +246,9 @@ class ApiTableRaw extends React.Component {
       // referrer: "no-referrer", // no-referrer, *client
       body: JSON.stringify(params), // body data type must match "Content-Type" header
     })
-      .then(Response => Response.json())
-      .then(result => this.setDataSource(result, isUpdateControls))
-      .catch(error => {
+      .then((Response) => Response.json())
+      .then((result) => this.setDataSource(result, isUpdateControls))
+      .catch((error) => {
         console.log(error);
         this.setState({ isError: error });
       });
@@ -259,40 +264,37 @@ class ApiTableRaw extends React.Component {
       }) => (
         <div style={{ padding: 8 }}>
           <Input
-            ref={node => {
+            ref={(node) => {
               this.searchInput = node;
             }}
             placeholder={`搜索 ${dataIndex}`}
             value={selectedKeys[0]}
-            onChange={e =>
+            onChange={(e) =>
               setSelectedKeys(e.target.value ? [e.target.value] : [])
             }
             onPressEnter={() => this.onTableSearch(selectedKeys, confirm)}
             style={{ width: 188, marginBottom: 8, display: 'block' }}
           />
           <Button
-            type="primary"
+            type='primary'
             onClick={() => this.onTableSearch(selectedKeys, confirm)}
-            icon="search"
-            size="small"
+            icon={<SearchOutlined />}
+            size='small'
             style={{ width: 90, marginRight: 8 }}
           >
             确定
           </Button>
           <Button
             onClick={() => this.onTableReset(clearFilters)}
-            size="small"
+            size='small'
             style={{ width: 90 }}
           >
             重置
           </Button>
         </div>
       ),
-      filterIcon: filtered => (
-        <Icon
-          type="search"
-          style={{ color: filtered ? '#1890ff' : undefined }}
-        />
+      filterIcon: (filtered) => (
+        <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
       ),
       onFilter: (value, record) =>
         record[dataIndex]
@@ -301,7 +303,7 @@ class ApiTableRaw extends React.Component {
               .toLowerCase()
               .includes(value.toLowerCase())
           : false,
-      onFilterDropdownVisibleChange: visible => {
+      onFilterDropdownVisibleChange: (visible) => {
         if (visible) {
           setTimeout(() => this.searchInput.select());
         }
@@ -313,8 +315,6 @@ class ApiTableRaw extends React.Component {
     const { controls, expand } = this.state;
     let children = [];
     if (controls) {
-      const { getFieldDecorator } = this.props.form;
-
       const controlsArray = [];
       for (let i = 0; i <= controls.length; i = i + 3) {
         controlsArray.push(controls.slice(i, i + 3));
@@ -325,21 +325,27 @@ class ApiTableRaw extends React.Component {
       // 先渲染行，再渲染列
       children = controlsArray.map((itemArray, indexArray) => (
         <Row
+          key={indexArray}
           gutter={{ md: 8, lg: 24, xl: 48 }}
-          style={{ display: indexArray < count ? 'block' : 'none' }}
+          style={{ display: indexArray < count ? 'flex' : 'none' }}
         >
           {itemArray.map((item, index) => {
             const CustomTag = Components[`${item.type}`];
+            const CustomID = item.id;
             const CustomLabel = item.label ? item.label : item.id;
             const options = item.option
               ? item.option
                   .sort((opt1, opt2) => (opt1 < opt2 ? -1 : 1))
-                  .map(c => <Option value={c}>{c}</Option>)
+                  .map((c, i) => (
+                    <Option key={i} value={c}>
+                      {c}
+                    </Option>
+                  ))
               : null;
 
             const props = item.props
               ? Object.keys(item.props)
-                  .filter(s => s !== 'value')
+                  .filter((s) => s !== 'value')
                   .reduce((obj, key) => {
                     obj[key] = item.props[key];
                     return obj;
@@ -379,38 +385,23 @@ class ApiTableRaw extends React.Component {
               }
             }
 
-            // 应该可以合并
+            // https://stackoverflow.com/questions/31163693/how-do-i-conditionally-add-attributes-to-react-components
             return (
-              <Col md={8} sm={24} key={index}>
-                {value ? (
-                  <FormItem
-                    label={`${CustomLabel}`}
-                    style={{ marginBottom: 12 }}
+              <Col xs={20} sm={16} md={8} key={index}>
+                <FormItem
+                  name={`${CustomID}`}
+                  label={`${CustomLabel}`}
+                  {...(value ? { initialValue: value } : {})}
+                  // initialValue={value ? value : undefined}
+                  style={{ marginBottom: 12 }}
+                >
+                  <CustomTag
+                    {...props}
+                    // onChange={(...args) => { this.onSearchChange(item, ...args); }}
                   >
-                    {getFieldDecorator(`${item.id}`, { initialValue: value })(
-                      <CustomTag
-                        {...props}
-                        // onChange={(...args) => { this.onSearchChange(item, ...args); }}
-                      >
-                        {options}
-                      </CustomTag>
-                    )}
-                  </FormItem>
-                ) : (
-                  <FormItem
-                    label={`${CustomLabel}`}
-                    style={{ marginBottom: 12 }}
-                  >
-                    {getFieldDecorator(`${item.id}`, {})(
-                      <CustomTag
-                        {...props}
-                        // onChange={(...args) => { this.onSearchChange(item, ...args); }}
-                      >
-                        {options}
-                      </CustomTag>
-                    )}
-                  </FormItem>
-                )}
+                    {options}
+                  </CustomTag>
+                </FormItem>
               </Col>
             );
           })}
@@ -427,13 +418,17 @@ class ApiTableRaw extends React.Component {
         parseFloat(((1 / columns.length) * 100).toPrecision(12)) + '%';
 
       for (let col of columns) {
-        col['width'] = colWidth;
+        let temp = {};
+        temp['dataIndex'] = col['dataIndex'];
+        temp['key'] = col['key'];
+        temp['title'] = col['title'];
+        temp['width'] = colWidth;
         if ('render' in col && 'action' in col['render']) {
           // 自定义format函数
           if (!String.format) {
-            String.format = function(format) {
+            String.format = function (format) {
               var args = Array.prototype.slice.call(arguments, 1);
-              return format.replace(/{(\d+)}/g, function(match, number) {
+              return format.replace(/{(\d+)}/g, function (match, number) {
                 return typeof args[number] != 'undefined'
                   ? args[number]
                   : match;
@@ -441,21 +436,21 @@ class ApiTableRaw extends React.Component {
             };
           }
           const url = col.render.action;
-          col['render'] = (text, record, index) => (
+          temp['render'] = (text, record, index) => (
             <span>
               <a
                 href={String.format(url, text)} // 暂只支持单个变量
-                target="_blank"
-                rel="noopener noreferrer"
+                target='_blank'
+                rel='noopener noreferrer'
               >{`${text}`}</a>
             </span>
           );
         }
-        col['sorter'] = (opt1, opt2) => (opt1 < opt2 ? -1 : 1);
-        Object.assign(col, this.getColumnSearchProps(col.dataIndex));
+        // TODO：排序和筛选功能需要改进
+        temp['sorter'] = (opt1, opt2) => (opt1 < opt2 ? -1 : 1);
+        Object.assign(temp, this.getColumnSearchProps(col.dataIndex));
+        antdCol.push(temp);
       }
-
-      antdCol = columns;
     }
     return antdCol;
   }
@@ -475,62 +470,74 @@ class ApiTableRaw extends React.Component {
 
     const { dataSource, columns, isError, loading } = this.state;
 
-    const { getFieldDecorator } = this.props.form;
-
     // 隐藏字段名称为name，和RPC要求一致
     return (
-      <LocaleProvider locale={zhCN}>
+      <ConfigProvider locale={zhCN}>
         <div>
-          <Form layout="vertical" onSubmit={this.onSearchSubmit}>
+          <Form
+            layout='vertical'
+            ref={this.formRef}
+            onFinish={this.onSearchSubmit}
+          >
             {this.getControls()}
             <Row>
               <Col sm={24} style={{ textAlign: 'right' }}>
-                <FormItem style={{ marginBottom: 0 }}>
-                  {getFieldDecorator('name', {
-                    initialValue: externalApiParam,
-                  })(<Input type="hidden" />)}
+                <FormItem
+                  name='name'
+                  initialValue={externalApiParam}
+                  style={{ marginBottom: 0 }}
+                >
+                  <Input type='hidden' />
                 </FormItem>
-                <FormItem style={{ marginBottom: 0, marginRight: 10 }}>
-                  {getFieldDecorator('isForce', {
-                    initialValue: false,
-                  })(
-                    <Switch checkedChildren="强刷" unCheckedChildren="缓存" />
-                  )}
+                <FormItem
+                  name='isForce'
+                  valuePropName='checked'
+                  initialValue={false}
+                  style={{
+                    marginBottom: 0,
+                    marginRight: 10,
+                  }}
+                >
+                  <Switch checkedChildren='强刷' unCheckedChildren='缓存' />
                 </FormItem>
                 <ButtonGroup>
                   <Button
-                    type="primary"
-                    icon="search"
-                    htmlType="submit"
+                    type='primary'
+                    icon={<SearchOutlined />}
+                    htmlType='submit'
                     disabled={loading}
                   >
                     查询
                   </Button>
-                  <Button icon="tool" onClick={this.OnReset}>
+                  <Button icon={<ToolOutlined />} onClick={this.OnReset}>
                     重置
                   </Button>
                   <Button
-                    icon="cloud-download"
+                    icon={<CloudDownloadOutlined />}
                     disabled={loading}
                     onClick={this.OnDownload}
                   >
                     下载
                   </Button>
                 </ButtonGroup>
-                <Button type="link" onClick={this.OnToggle}>
+                <Button type='link' onClick={this.OnToggle}>
                   {this.state.expand ? '收起' : '展开'}
-                  <Icon type={this.state.expand ? 'caret-up' : 'caret-down'} />
+                  {this.state.expand ? (
+                    <CaretUpOutlined />
+                  ) : (
+                    <CaretDownOutlined />
+                  )}
                 </Button>
               </Col>
             </Row>
           </Form>
           {isError ? (
-            <div className="interactions">
-              <Alert message="API调用错误" type="error" />
+            <div className='interactions'>
+              <Alert message='API调用错误' type='error' />
             </div>
           ) : (
             <div
-              ref={el => (this.antdTable = el)}
+              ref={(el) => (this.antdTable = el)}
               style={{ marginTop: 20, height: '475px', overflowY: 'scroll' }}
             >
               <Table
@@ -546,21 +553,20 @@ class ApiTableRaw extends React.Component {
                   ],
                   showSizeChanger: true,
                   showQuickJumper: true,
-                  showTotal: total => `共 ${total} 行`,
+                  showTotal: (total) => `共 ${total} 行`,
                 }}
                 loading={loading}
                 bordered={true}
                 scroll={{ x: 360 }}
                 // scroll={true}
-                size="small"
+                size='small'
               />
             </div>
           )}
         </div>
-      </LocaleProvider>
+      </ConfigProvider>
     );
   }
 }
 
-const ApiTable = Form.create()(ApiTableRaw);
 export default ApiTable;
