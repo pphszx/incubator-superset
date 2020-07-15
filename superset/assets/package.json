@@ -85,6 +85,8 @@
     "distributions": "^1.0.0",
     "dnd-core": "^2.6.0",
     "dompurify": "^1.0.3",
+    "echarts": "^4.8.0",
+    "funnel-graph-js": "^1.4.2",
     "geojson-extent": "^0.3.2",
     "geolib": "^2.0.24",
     "immutable": "^3.8.2",
