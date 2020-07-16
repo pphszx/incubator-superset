@@ -178,9 +178,8 @@ class ApiTable extends React.Component {
   }
 
   onSearchSubmit(values) {
-    const { externalApiService } = this.props;
-    // console.log('Form值: ', values);
-    this.getData(externalApiService, values);
+    const { externalApiService, externalApiParam } = this.props;
+    this.getData(externalApiService, { ...values, name: externalApiParam });
   }
 
   OnReset() {
@@ -362,17 +361,21 @@ class ApiTable extends React.Component {
             const CustomLabel = item.label ? item.label : item.id;
             const options = item.option
               ? item.option
-                .sort((opt1, opt2) => (opt1 < opt2 ? -1 : 1))
-                .map((c) => <Option key={c} value={c}>{c}</Option>)
+                  .sort((opt1, opt2) => (opt1 < opt2 ? -1 : 1))
+                  .map((c) => (
+                    <Option key={c} value={c}>
+                      {c}
+                    </Option>
+                  ))
               : null;
 
             const props = item.props
               ? Object.keys(item.props)
-                .filter((s) => s !== 'value')
-                .reduce((obj, key) => {
-                  obj[key] = item.props[key];
-                  return obj;
-                }, {})
+                  .filter((s) => s !== 'value')
+                  .reduce((obj, key) => {
+                    obj[key] = item.props[key];
+                    return obj;
+                  }, {})
               : null;
 
             // 根据类型初始化
@@ -617,6 +620,7 @@ class ApiTable extends React.Component {
               columns={columns}
               type={vis.type}
               title={vis.title}
+              params={vis.params}
             />
           </Drawer>
         ) : (

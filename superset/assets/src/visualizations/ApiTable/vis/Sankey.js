@@ -48,6 +48,8 @@ const Sankey = props => {
             })
 
             var mychart = echarts.init(document.getElementById('sankey'))
+            console.log('nodes_list', nodes_list)
+            console.log('linkes', links)
             let option = {
                 title: {
                     subtext: props.title,
@@ -61,6 +63,7 @@ const Sankey = props => {
                         top: 20.0,
                         right: 150.0,
                         bottom: 25.0,
+                        layoutIterations: (props.params?props.params.layoutIterations:1),
                         data: nodes_list,
                         links: links,
                         lineStyle: {
