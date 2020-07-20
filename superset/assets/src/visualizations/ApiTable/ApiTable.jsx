@@ -607,7 +607,7 @@ class ApiTable extends React.Component {
             title={vis.title}
             placement='right'
             forceRender={true}
-            width={1659}
+            width={window.innerWidth*0.75}
             closable={true}
             onClose={this.onDrawerClose}
             visible={this.state.drawerVisible}
