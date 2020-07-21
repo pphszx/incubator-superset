@@ -6,6 +6,17 @@ const randomColor = () => {
     return `rgb(${255 * Math.random()}, ${255 * Math.random()}, ${255})`;
 }
 
+const genTooltipsFormatterStr = (e, first, second, third, cols) => {
+    let res = `${e[first]} > ${e[second]} <br />
+        ${cols[2]}: ${e[third]} <br />
+        `
+    for (let i = 3; i < cols.length; i++) {
+        res += `${cols[i]}: ${e[cols[i]]} <br />`
+    }
+
+    return res
+}
+
 const Sankey = props => {
     useEffect(() => {
         if (props.data !== undefined && props.data.length !== 0) {
@@ -16,6 +27,7 @@ const Sankey = props => {
             const source = columns[0]
             const target = columns[1]
             const value = columns[2]
+
 
             let nodes = new Set()
             let nodes_list = []
@@ -28,7 +40,8 @@ const Sankey = props => {
                     {
                         "source": e[source],
                         "target": e[target],
-                        "value": e[value]
+                        "value": e[value],
+                        tooltip: { formatter: genTooltipsFormatterStr(e, source, target, value, columns) }
                     }
                 )
             });
@@ -63,7 +76,7 @@ const Sankey = props => {
                         top: 20.0,
                         right: 150.0,
                         bottom: 25.0,
-                        layoutIterations: (props.params?props.params.layoutIterations:1),
+                        layoutIterations: (props.params ? props.params.layoutIterations : 1),
                         data: nodes_list,
                         links: links,
                         lineStyle: {
@@ -79,6 +92,9 @@ const Sankey = props => {
                             color: "#ffffff",
                             fontFamily: "Arial",
                             fontSize: 15
+                        },
+                        tooltip: {
+                            formatter: '{b} {c}',
                         }
                     }],
                 tooltip: {
