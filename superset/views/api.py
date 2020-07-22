@@ -15,12 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 # pylint: disable=R
+import requests
 import simplejson as json
-from flask import request
+from nameko.standalone.rpc import ClusterRpcProxy
+from flask import g, request
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access_api
+from flask_login import current_user
 
-from superset import db, event_logger
+from superset import conf, db, event_logger
 from superset.common.query_context import QueryContext
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
@@ -69,3 +72,92 @@ class Api(BaseSupersetView):
         update_time_range(form_data)
 
         return json.dumps(form_data)
+
+
+class Sachima(BaseSupersetView):
+    @event_logger.log_this
+    @api
+    @handle_api_exception
+    @has_access_api
+    @expose("/v1/restful/", methods=["POST"])
+    def restful(self):
+        """
+        RESTFul API
+        """
+        req_params = request.get_json()
+        req_params["user"] = " ".join([current_user.first_name, current_user.last_name])
+        req_params["email"] = current_user.email
+        res = requests.post(
+            conf.get("API_URL_CONFIG").get("RESTFUL"), json=req_params, timeout=300,
+        )
+        result = json.loads(res.text)
+        return json.dumps(result), 201
+
+    @event_logger.log_this
+    @api
+    @handle_api_exception
+    @has_access_api
+    @expose("/v1/rpc/", methods=["POST"])
+    def rpc(self):
+        """
+        Nameko RPC
+        """
+        req_params = request.get_json()
+        req_params["user"] = " ".join([current_user.first_name, current_user.last_name])
+        req_params["email"] = current_user.email
+        CONFIG = {"AMQP_URI": conf.get("API_URL_CONFIG").get("RPC")}
+        with ClusterRpcProxy(CONFIG) as rpc:
+            res = rpc.data.get_report(req_params)
+        return json.dumps(res), 201
+
+    @event_logger.log_this
+    @api
+    @handle_api_exception
+    @has_access_api
+    @expose("/v1/save_or_overwrite_slice/", methods=["GET", "POST"])
+    def save_or_overwrite_slice(self):
+        """
+        modified from views/core: Save or overwrite a slice
+        """
+        if request.method == "POST":
+            req_params = request.get_json()
+            req_params["user"] = " ".join(
+                [current_user.first_name, current_user.last_name]
+            )
+            req_params["email"] = current_user.email
+            params = {
+                "external_api_service": req_params.get("api", "rpc"),
+                "external_api_param": req_params.get("params", ""),
+            }
+            slc = Slice(
+                slice_name=req_params["slice_name"],
+                datasource_id=3,
+                datasource_type="table",
+                datasource_name="birth_names",
+                viz_type="api_table",
+                params=json.dumps(params),
+                owners=[g.user] if g.user else [],
+            )
+
+            target = (
+                db.session.query(Slice)
+                .filter_by(viz_type="api_table")
+                .filter(Slice.params.contains(req_params["params"]))
+                .first()
+            )
+            session = db.session()
+            if target:
+                if target.slice_name != slc.slice_name or target.params != slc.params:
+                    target.slice_name = slc.slice_name
+                    target.params = slc.params
+                    session.commit()
+                    return json.dumps({"msg": "Slice Modifed"})
+                else:
+                    return json.dumps({"msg": "Slice Unchanged"})
+            else:
+                session.add(slc)
+                session.commit()
+                return json.dumps({"msg": "Slice Added"})
+        else:
+            slcs = db.session.query(Slice).filter_by(viz_type="api_table").all()
+            return json.dumps(list(map(lambda x: {str(x): x.json_data}, slcs)))

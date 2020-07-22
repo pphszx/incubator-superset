@@ -143,7 +143,7 @@ class SupersetAppInitializer:
             AnnotationLayerModelView,
             AnnotationModelView,
         )
-        from superset.views.api import Api
+        from superset.views.api import Api, Sachima
         from superset.views.core import Superset
         from superset.views.redirects import R
         from superset.views.key_value import KV
@@ -271,6 +271,7 @@ class SupersetAppInitializer:
         # Setup views with no menu
         #
         appbuilder.add_view_no_menu(Api)
+        appbuilder.add_view_no_menu(Sachima)
         appbuilder.add_view_no_menu(CssTemplateAsyncModelView)
         appbuilder.add_view_no_menu(CsvToDatabaseView)
         appbuilder.add_view_no_menu(ExcelToDatabaseView)

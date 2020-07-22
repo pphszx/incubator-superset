@@ -697,6 +697,19 @@ class TableViz(BaseViz):
         )
 
 
+class ApiTableViz(BaseViz):
+
+    """A data table with rich time-series related columns"""
+
+    viz_type = "api_table"
+    verbose_name = _("Api Table View")
+    credits = 'a <a href="https://github.com/airbnb/superset">Superset</a> original'
+    is_timeseries = True
+
+    def get_df(self, query_obj: Optional[QueryObjectDict] = None) -> pd.DataFrame:
+        return pd.DataFrame([1])
+
+
 class TimeTableViz(BaseViz):
 
     """A data table with rich time-series related columns"""

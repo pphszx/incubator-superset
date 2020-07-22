@@ -20,6 +20,7 @@ import { getChartControlPanelRegistry } from '@superset-ui/chart';
 import MainPreset from '../visualizations/presets/MainPreset';
 import setupPluginsExtra from './setupPluginsExtra';
 
+import ApiTable from '../explore/controlPanels/ApiTable';
 import DeckArc from '../explore/controlPanels/DeckArc';
 import DeckGeojson from '../explore/controlPanels/DeckGeojson';
 import DeckGrid from '../explore/controlPanels/DeckGrid';
@@ -38,6 +39,7 @@ export default function setupPlugins() {
 
   // TODO: Remove these shims once the control panel configs are moved into the plugin package.
   getChartControlPanelRegistry()
+    .registerValue('api_table', ApiTable)
     .registerValue('filter_box', FilterBox)
     .registerValue('separator', Separator)
     .registerValue('time_table', TimeTable)
