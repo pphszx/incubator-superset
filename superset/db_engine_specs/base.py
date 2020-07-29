@@ -439,6 +439,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         kwargs["encoding"] = "utf-8"
         kwargs["iterator"] = True
         df = pd.read_excel(**kwargs)
+        df.columns = [x.strip() for x in df.columns]  # 标题去空格
+        df["dt_upload"] = pd.datetime.now()  # 上传日期
         return df
 
     @staticmethod
@@ -451,6 +453,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         kwargs["iterator"] = True
         chunks = pd.read_csv(**kwargs)
         df = pd.concat(chunk for chunk in chunks)
+        df.columns = [x.strip() for x in df.columns]  # 标题去空格
+        df["dt_upload"] = pd.datetime.now()  # 上传日期
         return df
 
     @classmethod

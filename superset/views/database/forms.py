@@ -182,6 +182,13 @@ class CsvToDatabaseForm(DynamicForm):
         _("Skip Blank Lines"),
         description=_("Skip blank lines rather than interpreting them as NaN values."),
     )
+    parse_strings = CommaSeparatedListField(
+        _("Parse Strings"),
+        description=_(
+            "A comma separated list of columns that should be parsed as strings."
+        ),
+        filters=[filter_not_empty_values],
+    )
     parse_dates = CommaSeparatedListField(
         _("Parse Dates"),
         description=_(
@@ -365,6 +372,13 @@ class ExcelToDatabaseForm(DynamicForm):
         description=_("Number of rows of file to read."),
         validators=[Optional(), NumberRange(min=0)],
         widget=BS3TextFieldWidget(),
+    )
+    parse_strings = CommaSeparatedListField(
+        _("Parse Strings"),
+        description=_(
+            "A comma separated list of columns that should be parsed as strings."
+        ),
+        filters=[filter_not_empty_values],
     )
     parse_dates = CommaSeparatedListField(
         _("Parse Dates"),

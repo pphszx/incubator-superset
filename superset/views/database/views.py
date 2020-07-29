@@ -111,6 +111,12 @@ class CsvToDatabaseView(SimpleFormView):
         form.if_exists.data = "fail"
 
     def form_post(self, form: CsvToDatabaseForm) -> Response:
+        # 增加表名前缀，防止误删其他表
+        form.name.data = "upload_" + form.name.data
+        # 指定字符串列
+        if form.parse_strings.data:
+            form.parse_strings.data = {d: str for d in form.parse_strings.data}
+
         database = form.con.data
         csv_table = Table(table=form.name.data, schema=form.schema.data)
 
@@ -161,6 +167,7 @@ class CsvToDatabaseView(SimpleFormView):
                 "skiprows": form.skiprows.data,
                 "nrows": form.nrows.data,
                 "skip_blank_lines": form.skip_blank_lines.data,
+                "dtype": form.parse_strings.data,
                 "parse_dates": form.parse_dates.data,
                 "infer_datetime_format": form.infer_datetime_format.data,
                 "chunksize": 1000,
@@ -268,6 +275,12 @@ class ExcelToDatabaseView(SimpleFormView):
         form.sheet_name.data = ""
 
     def form_post(self, form: ExcelToDatabaseForm) -> Response:
+        # 增加表名前缀，防止误删其他表
+        form.name.data = "upload_" + form.name.data
+        # 指定字符串列
+        if form.parse_strings.data:
+            form.parse_strings.data = {d: str for d in form.parse_strings.data}
+
         database = form.con.data
         excel_table = Table(table=form.name.data, schema=form.schema.data)
 
@@ -317,6 +330,7 @@ class ExcelToDatabaseView(SimpleFormView):
                 "skiprows": form.skiprows.data,
                 "nrows": form.nrows.data,
                 "sheet_name": form.sheet_name.data if form.sheet_name.data else 0,
+                "dtype": form.parse_strings.data,
                 "parse_dates": form.parse_dates.data,
             }
             if form.null_values.data:
