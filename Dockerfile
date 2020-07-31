@@ -31,9 +31,10 @@ RUN mkdir /app \
 
 # First, we just wanna install requirements, which will allow us to utilize the cache
 # in order to only build if and only if requirements change
+#TODO: 需要检查缓存逻辑
 COPY ./requirements.txt /app/
 RUN cd /app \
-        && pip install --no-cache -r requirements.txt
+        && pip install --no-cache-dir -r requirements.txt
 
 
 ######################################################################
@@ -103,25 +104,25 @@ WORKDIR /app
 
 USER superset
 
-HEALTHCHECK CMD ["curl", "-f", "http://localhost:8088/health"]
+HEALTHCHECK CMD ["curl", "-f", "http://localhost:${SUPERSET_PORT}/health"]
 
 EXPOSE ${SUPERSET_PORT}
 
 ENTRYPOINT ["/usr/bin/docker-entrypoint.sh"]
 
-######################################################################
-# Dev image...
-######################################################################
-FROM lean AS dev
+# ######################################################################
+# # Dev image...
+# ######################################################################
+# FROM lean AS dev
 
-COPY ./requirements* ./docker/requirements* /app/
+# COPY ./requirements* ./docker/requirements* /app/
 
-USER root
-# Cache everything for dev purposes...
-RUN cd /app \
-    && pip install --ignore-installed -e . \
-    && pip install --ignore-installed -r requirements.txt \
-    && pip install --ignore-installed -r requirements-dev.txt \
-    && pip install --ignore-installed -r requirements-extra.txt \
-    && pip install --ignore-installed -r requirements-local.txt || true
-USER superset
+# USER root
+# # Cache everything for dev purposes...
+# RUN cd /app \
+#     && pip install --ignore-installed -e . \
+#     && pip install --ignore-installed -r requirements.txt \
+#     && pip install --ignore-installed -r requirements-dev.txt \
+#     && pip install --ignore-installed -r requirements-extra.txt \
+#     && pip install --ignore-installed -r requirements-local.txt || true
+# USER superset

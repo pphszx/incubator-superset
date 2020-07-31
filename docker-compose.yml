@@ -16,9 +16,9 @@
 #
 x-superset-build: &superset-build
   args:
-    NPM_BUILD_CMD: build-dev
+    NPM_BUILD_CMD: build
   context: ./
-  dockerfile: Dockerfile-dev
+  dockerfile: Dockerfile
 x-superset-depends-on: &superset-depends-on
   - db
   - redis
@@ -43,13 +43,13 @@ services:
 
   db:
     env_file: docker/.env
-    image: postgres:10
+    image: mariadb:10
     container_name: superset_db
     restart: unless-stopped
     ports:
       - "127.0.0.1:5432:5432"
     volumes:
-      - db_home:/var/lib/postgresql/data
+      - db_home:/var/lib/mysql
 
   superset:
     env_file: docker/.env
@@ -62,45 +62,45 @@ services:
     depends_on: *superset-depends-on
     volumes: *superset-volumes
 
-  superset-init:
-    build: *superset-build
-    container_name: superset_init
-    command: ["/app/docker-init.sh"]
-    env_file: docker/.env
-    depends_on: *superset-depends-on
-    volumes: *superset-volumes
+  # superset-init:
+  #   build: *superset-build
+  #   container_name: superset_init
+  #   command: ["/app/docker-init.sh"]
+  #   env_file: docker/.env
+  #   depends_on: *superset-depends-on
+  #   volumes: *superset-volumes
 
-  superset-node:
-    image: node:10-jessie
-    container_name: superset_node
-    command: ["bash", "-c", "cd /app/superset-frontend && npm install --global webpack webpack-cli && npm install && npm run dev"]
-    env_file: docker/.env
-    depends_on: *superset-depends-on
-    volumes: *superset-volumes
+  # superset-node:
+  #   image: node:10-jessie
+  #   container_name: superset_node
+  #   command: ["bash", "-c", "cd /app/superset-frontend && npm install --global webpack webpack-cli && npm install && npm run dev"]
+  #   env_file: docker/.env
+  #   depends_on: *superset-depends-on
+  #   volumes: *superset-volumes
 
-  superset-worker:
-    build: *superset-build
-    container_name: superset_worker
-    command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
-    env_file: docker/.env
-    restart: unless-stopped
-    depends_on: *superset-depends-on
-    volumes: *superset-volumes
+  # superset-worker:
+  #   build: *superset-build
+  #   container_name: superset_worker
+  #   command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
+  #   env_file: docker/.env
+  #   restart: unless-stopped
+  #   depends_on: *superset-depends-on
+  #   volumes: *superset-volumes
 
-  superset-tests-worker:
-    build: *superset-build
-    container_name: superset_tests_worker
-    command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
-    env_file: docker/.env
-    environment:
-      DATABASE_HOST: localhost
-      DATABASE_DB: test
-      REDIS_CELERY_DB: 2
-      REDIS_RESULTS_DB: 3
-      REDIS_HOST: localhost
-    network_mode: host
-    depends_on: *superset-depends-on
-    volumes: *superset-volumes
+  # superset-tests-worker:
+  #   build: *superset-build
+  #   container_name: superset_tests_worker
+  #   command: ["celery", "worker", "--app=superset.tasks.celery_app:app", "-Ofair", "-l", "INFO"]
+  #   env_file: docker/.env
+  #   environment:
+  #     DATABASE_HOST: localhost
+  #     DATABASE_DB: test
+  #     REDIS_CELERY_DB: 2
+  #     REDIS_RESULTS_DB: 3
+  #     REDIS_HOST: localhost
+  #   network_mode: host
+  #   depends_on: *superset-depends-on
+  #   volumes: *superset-volumes
 
 volumes:
   superset_home:
