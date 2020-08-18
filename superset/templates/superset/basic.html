@@ -33,7 +33,9 @@
         {% endif %}
       {% endblock %}
     </title>
-    {% block head_meta %}{% endblock %}
+    {% block head_meta %}
+      <meta name="renderer" content="webkit">
+    {% endblock %}
     {% block head_css %}
       {% for favicon in favicons %}
         <link 
