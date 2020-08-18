@@ -26,7 +26,6 @@ else
         --error-logfile '-' \
         --workers 5 \
         --worker-class gevent \
-        --threads 20 \
         --timeout 120 \
         --limit-request-line 0 \
         --limit-request-field_size 0 \
