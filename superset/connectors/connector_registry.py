@@ -57,7 +57,9 @@ class ConnectorRegistry:
         for source_type in ConnectorRegistry.sources:
             source_class = ConnectorRegistry.sources[source_type]
             qry = session.query(source_class)
-            qry = source_class.default_query(qry)
+            # 允许修改为SQL Lab数据源
+            # https://github.com/apache/incubator-superset/pull/4746
+            # qry = source_class.default_query(qry)
             datasources.extend(qry.all())
         return datasources
 
