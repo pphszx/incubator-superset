@@ -104,7 +104,8 @@ WORKDIR /app
 
 USER superset
 
-HEALTHCHECK CMD ["curl", "-f", "http://localhost:${SUPERSET_PORT}/health"]
+# https://stackoverflow.com/questions/59946558/cannot-use-env-variable-from-docker-container-to-perform-healthchecks-in-docker
+HEALTHCHECK CMD ["curl", "-f", "http://localhost:$${SUPERSET_PORT}/health"]
 
 EXPOSE ${SUPERSET_PORT}
 
