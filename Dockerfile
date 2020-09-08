@@ -105,7 +105,7 @@ WORKDIR /app
 USER superset
 
 # https://docs.docker.com/engine/reference/builder/#healthcheck
-HEALTHCHECK --interval=10s --timeout=2s --retries=12 \
+HEALTHCHECK --interval=300s --timeout=30s --retries=3 \
   CMD curl -f http://localhost:${SUPERSET_PORT}/health || exit 1
 
 EXPOSE ${SUPERSET_PORT}
