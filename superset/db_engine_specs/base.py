@@ -439,8 +439,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         kwargs["encoding"] = "utf-8"
         kwargs["iterator"] = True
         df = pd.read_excel(**kwargs)
+
+        # 浮点数精度最大6位
+        df_float = df.select_dtypes(include=['float64'])
+        df = df.apply(lambda x: x.round(6) if x.name in df_float else x)
+
         df.columns = [x.strip() for x in df.columns]  # 标题去空格
-        df["dt_upload"] = pd.datetime.now()  # 上传日期
+        df["dt_upload"] = datetime.now()  # 上传日期
         return df
 
     @staticmethod
@@ -453,8 +458,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         kwargs["iterator"] = True
         chunks = pd.read_csv(**kwargs)
         df = pd.concat(chunk for chunk in chunks)
+
+        # 浮点数精度最大6位
+        df_float = df.select_dtypes(include=['float64'])
+        df = df.apply(lambda x: x.round(6) if x.name in df_float else x)
+
         df.columns = [x.strip() for x in df.columns]  # 标题去空格
-        df["dt_upload"] = pd.datetime.now()  # 上传日期
+        df["dt_upload"] = datetime.now()  # 上传日期
         return df
 
     @classmethod
